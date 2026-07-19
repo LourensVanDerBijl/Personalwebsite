@@ -1,6 +1,6 @@
 <script>
 import homeIcon from '../assets/SvgIcons/home.svg';
-import contactIcon from '../assets/SvgIcons/contact.svg';
+import infoIcon from '../assets/SvgIcons/info.svg';
 import careerIcon from '../assets/SvgIcons/career.svg';
 import educationIcon from '../assets/SvgIcons/education.svg';
 import certificatesIcon from '../assets/SvgIcons/certificates.svg';
@@ -10,11 +10,17 @@ import loginIcon from '../assets/SvgIcons/login.svg';
 
 export default {
   name: 'ViewNavbar',
+  props: {
+    activeSection: {
+      type: String,
+      default: 'home'
+    }
+  },
   data() {
     return {
       icons: {
         home: homeIcon,
-        contact: contactIcon,
+        info: infoIcon,
         career: careerIcon,
         education: educationIcon,
         certificates: certificatesIcon,
@@ -31,19 +37,46 @@ export default {
 <template>
   <aside
     class="sidebar"
-    :style="{ width: sidebarWidth }"
     role="navigation"
     aria-label="Main navigation"
   >
     <nav class="sidebar-inner" role="menubar" aria-orientation="vertical">
       <ul class="sidebar-nav" role="list">
-        <li><a href="#home" class="nav-link"><img :src="icons.home" class="icon" alt="Home" /></a></li>
-        <li><a href="#contact" class="nav-link"><img :src="icons.contact" class="icon" alt="Contact" /></a></li>
-        <li><a href="#about" class="nav-link"><img :src="icons.career" class="icon" alt="Career" /></a></li>
-        <li><a href="#education" class="nav-link"><img :src="icons.education" class="icon" alt="Education" /></a></li>
-        <li><a href="#certificates" class="nav-link"><img :src="icons.certificates" class="icon" alt="Certificates" /></a></li>
-        <li><a href="#skills" class="nav-link"><img :src="icons.skills" class="icon" alt="Skills" /></a></li>
-        <li><a href="#vision" class="nav-link"><img :src="icons.vision" class="icon" alt="Vision" /></a></li>
+        <li>
+          <a href="#home" class="nav-link" :class="{ active: activeSection === 'home' }">
+            <img :src="icons.home" class="icon" alt="Home" />
+          </a>
+        </li>
+        <li>
+          <a href="#info" class="nav-link" :class="{ active: activeSection === 'info' }">
+            <img :src="icons.info" class="icon" alt="Info" />
+          </a>
+        </li>
+        <li>
+          <a href="#career" class="nav-link" :class="{ active: activeSection === 'career' }">
+            <img :src="icons.career" class="icon" alt="Career" />
+          </a>
+        </li>
+        <li>
+          <a href="#education" class="nav-link" :class="{ active: activeSection === 'education' }">
+            <img :src="icons.education" class="icon" alt="Education" />
+          </a>
+        </li>
+        <li>
+          <a href="#certificates" class="nav-link" :class="{ active: activeSection === 'certificates' }">
+            <img :src="icons.certificates" class="icon" alt="Certificates" />
+          </a>
+        </li>
+        <li>
+          <a href="#skills" class="nav-link" :class="{ active: activeSection === 'skills' }">
+            <img :src="icons.skills" class="icon" alt="Skills" />
+          </a>
+        </li>
+        <li>
+          <a href="#vision" class="nav-link" :class="{ active: activeSection === 'vision' }">
+            <img :src="icons.vision" class="icon" alt="Vision" />
+          </a>
+        </li>
       </ul>
 
       <div class="sidebar-footer">
@@ -64,7 +97,7 @@ export default {
   width: 54px;
   padding: 8px 6px;
   box-sizing: border-box;
-  background-color: #000;
+  background-color: #000; /* always black */
   border-right: 1px solid rgba(255,255,255,0.06);
   backdrop-filter: blur(8px) saturate(140%);
   -webkit-backdrop-filter: blur(8px) saturate(140%);
@@ -145,5 +178,57 @@ export default {
   height: 1px;
   overflow: hidden;
   clip: rect(0,0,0,0);
+}
+
+/* Mobile view: convert sidebar to top navbar */
+@media (max-width: 768px) {
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 54px;              /* short bar instead of full height */
+    width: 100% !important;    /* force full width */
+    padding: 0 8px;
+    border-right: none;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    background-color: #000 !important; /* force black background */
+    box-shadow: 0 2px 6px rgba(0,0,0,0.5);
+  }
+
+  .sidebar-inner {
+    flex-direction: row;        /* horizontal layout */
+    justify-content: center;    /* center items across full width */
+    align-items: center;
+    width: 100%;                /* stretch full width */
+    height: 100%;
+    background-color: #000;     /* ensure inner stays black too */
+  }
+
+  .sidebar-nav {
+    flex-direction: row;        /* nav items side by side */
+    gap: 16px;
+    padding: 0;
+    margin: 0;
+    width: auto;
+    background-color: #000;     /* keep nav row black */
+  }
+
+  .sidebar-footer {
+    display: none;              /* hide login link on mobile */
+  }
+
+  .sidebar-nav .nav-link {
+    width: auto;
+    padding: 6px;
+  }
+
+  .sidebar-nav .icon {
+    width: 22px;
+    height: 22px;
+  }
 }
 </style>
