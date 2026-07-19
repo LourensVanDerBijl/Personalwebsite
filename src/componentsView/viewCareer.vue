@@ -8,6 +8,7 @@ export default {
   setup() {
     const companies = ref([]);
     const selectedCompany = ref(null);
+    const activeTab = ref('description');
 
     const loadCareerHistory = async () => {
       try {
@@ -48,20 +49,27 @@ export default {
 
     const selectCompany = (company) => {
       selectedCompany.value = company;
+      activeTab.value = 'description';
+    };
+
+    const selectTab = (tab) => {
+      activeTab.value = tab;
     };
 
     onMounted(loadCareerHistory);
 
-    return { companies, selectedCompany, selectCompany };
+    return { companies, selectedCompany, activeTab, selectCompany, selectTab };
   }
 };
 </script>
 
 <template>
   <div class="career-root">
+    <!-- Header row: heading left, nav right -->
     <div class="career-header-row">
       <h1 class="career-heading">Career History</h1>
       <div class="career-nav">
+        <!-- Desktop pill nav -->
         <div
           v-for="company in companies"
           :key="company.id"
@@ -71,42 +79,76 @@ export default {
         >
           {{ company.company }}
         </div>
+
+        <!-- Mobile dropdown -->
+        <select
+          class="career-nav-dropdown"
+          v-model="selectedCompany"
+          @change="selectCompany(selectedCompany)"
+        >
+          <option v-for="company in companies" :key="company.id" :value="company">
+            {{ company.company }}
+          </option>
+        </select>
       </div>
     </div>
 
+    <!-- Main Content -->
     <div v-if="selectedCompany" class="career-content">
+      <!-- Company Info -->
       <div class="career-info">
-        <h2>{{ selectedCompany.company }}</h2>
-        <p>{{ selectedCompany.startDate }} - {{ selectedCompany.endDate }}</p>
+        <div class="career-info-top">
+          <h2>{{ selectedCompany.company }}</h2>
+          <p>{{ selectedCompany.startDate }} - {{ selectedCompany.endDate }}</p>
+        </div>
         <p class="career-title">{{ selectedCompany.title }}</p>
       </div>
 
-      <!-- Description -->
-      <div class="career-description">
-        <h3 class="section-heading">Description</h3>
-        <div class="scroll-content">
+      <!-- Tab Nav -->
+      <div class="career-subnav">
+        <button
+          class="tab-btn"
+          :class="{ active: activeTab === 'description' }"
+          @click="selectTab('description')"
+        >
+          Description
+        </button>
+        <button
+          class="tab-btn"
+          :class="{ active: activeTab === 'achievements' }"
+          @click="selectTab('achievements')"
+        >
+          Achievements
+        </button>
+        <button
+          class="tab-btn"
+          :class="{ active: activeTab === 'stacks' }"
+          @click="selectTab('stacks')"
+        >
+          Stack
+        </button>
+      </div>
+
+      <!-- Scrollable Content Area -->
+      <div class="career-details">
+        <div v-if="activeTab === 'description'">
           <p v-for="(desc, index) in selectedCompany.descriptions" :key="index">
             {{ desc }}
           </p>
         </div>
-      </div>
 
-      <!-- Achievements -->
-      <div class="career-achievements">
-        <h3 class="section-heading">Achievements</h3>
-        <div class="scroll-content">
+        <div v-if="activeTab === 'achievements'">
           <ul>
             <li v-for="(ach, index) in selectedCompany.achievements" :key="index">
               {{ ach }}
             </li>
           </ul>
         </div>
-      </div>
 
-      <!-- Stacks -->
-      <div class="career-stacks">
-        <div v-for="(stack, index) in selectedCompany.stacks" :key="index" class="stack-item">
-          {{ stack }}
+        <div v-if="activeTab === 'stacks'" class="stack-list">
+          <div v-for="(stack, index) in selectedCompany.stacks" :key="index" class="stack-item">
+            {{ stack }}
+          </div>
         </div>
       </div>
     </div>
@@ -114,22 +156,24 @@ export default {
 </template>
 
 <style scoped>
+/* Root */
 .career-root {
   display: flex;
   flex-direction: column;
   padding: 20px;
   min-height: 100vh;
   background: #fff;
-  overflow-y: auto;
 }
 
+/* Header row: heading left, nav right */
 .career-header-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
 
-h1.career-heading {
+.career-heading {
+  color: #000000;
   font-size: clamp(1.6rem, 4vw, 2.5rem);
   margin: 0;
   border-left: 4px solid #ff4d00;
@@ -138,13 +182,15 @@ h1.career-heading {
 
 .career-nav {
   display: flex;
-  gap: 4px;
-  padding: 4px;
+  gap: 6px;
+  padding: 6px;
   background: #ff4d00;
   border-radius: 24px;
 }
+
+/* Desktop pill nav items */
 .career-nav-item {
-  padding: 6px 12px;
+  padding: 6px 14px;
   font-size: 13px;
   color: #fff;
   cursor: pointer;
@@ -155,115 +201,150 @@ h1.career-heading {
   border-radius: 20px;
 }
 
+/* Mobile dropdown (hidden by default) */
+.career-nav-dropdown {
+  display: none;
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid #ff4d00;
+  background: #fff;
+  color: #ff4d00;
+  font-size: 14px;
+}
+
+/* Main content container */
 .career-content {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  grid-template-rows: auto 1fr auto;
-  gap: 16px;
-  flex: 1;
+  margin-top: 30px;
+  height: calc(100vh - 160px);
+  max-height: calc(100vh - 160px);
+  display: flex;
+  flex-direction: column;
+  background-color: #ffffff00;
+  border: 1px solid #e0e0e000;
+  border-left: 4px solid #ff4d00;
+  border-radius: 6px;
+  padding: 28px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0);
 }
 
 .career-info {
+  padding-bottom: 12px;
+  border-bottom: 1px solid #d5d3d200;
+  margin-bottom: 20px;
+}
+
+/* Company info */
+.career-info-top {
   display: flex;
-  flex-wrap: wrap;
-  gap: 2px 8px;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 8px;
 }
 .career-info h2 {
-  font-size: 22px;
   color: #ff4d00;
   margin: 0;
+  font-size: 20px;
 }
-.career-info h2 + p {
-  font-size: 12px;
+.career-info p:not(.career-title) {
+  font-size: 0.8rem;
   font-style: italic;
+  color: #666;
+  margin: 0;
 }
 .career-info .career-title {
-  flex-basis: 100%;
-  font-size: 13px;
+  font-size: 0.85rem;
   font-style: italic;
+  margin: 0 0 16px 0;
 }
 
-/* Section headings */
-.section-heading {
-  font-size: 14px;
-  font-weight: bold;
-  margin: 0 0 8px;
-  position: sticky;
-  top: 0;
-  background: inherit;
+/* Subnav tabs */
+.career-subnav {
+  display: flex;
+  gap: 10px;
+  background-color: #f4f2f2;
+  border: 1px solid #ff5100;
+  border-left: none;
+  border-right: none;
+  padding: 6px 12px;
+  margin-bottom: 20px;
+}
+.career-subnav button {
+  color: #666666;
+  font-weight: 600;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  padding: 6px 0;
+  margin-right: 20px;
+  font-size: 0.9rem;
+}
+.career-subnav button:hover,
+.career-subnav button.active {
+  color: #ff4d00;
+  border-bottom: 2px solid #ff4d00;
 }
 
-/* Scrollable content fills full height */
-.scroll-content {
+/* Scrollable details area */
+.career-details {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
+  padding-right: 15px;
+  color: #444444;
+  font-size: 0.85rem;
+  line-height: 1.6;
+  border-top: none;
+  border-left: none;
+  padding: 24px;
+}
+.career-details p {
+  margin-bottom: 14px;
+}
+.career-details li {
+  margin-bottom: 10px;
+}
+.career-details::-webkit-scrollbar {
+  width: 6px;
+}
+.career-details::-webkit-scrollbar-thumb {
+  background-color: #ff4d00;
+  border-radius: 10px;
+}
+.career-details::-webkit-scrollbar-thumb:hover {
+  background-color: #ff4d00;
 }
 
-/* Description */
-.career-description {
-  grid-column: 1;
-  grid-row: 2;
-  border: 1px solid black;
-  padding: 10px;
-  border-radius: 6px;
-  background: rgba(0,0,0,0.02);
-  font-size: 13px;
-  display: flex;
-  flex-direction: column;
-  height: 300px; /* fixed height */
-}
-
-/* Achievements */
-.career-achievements {
-  grid-column: 2;
-  grid-row: 2;
-  border: 1px solid orange;
-  padding: 10px;
-  border-radius: 6px;
-  background: rgba(255,165,0,0.02);
-  font-size: 13px;
-  display: flex;
-  flex-direction: column;
-  height: 300px; /* fixed height */
-}
-.career-achievements li {
-  font-size: 13px;
-  margin-bottom: 6px;
-}
-
-/* Stacks */
-.career-stacks {
-  grid-column: 1 / span 2;
-  grid-row: 3;
+/* Stack items */
+.stack-list {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
-  padding: 8px;
-  border: 1px solid yellow;
-  border-radius: 6px;
-  background: rgba(255,255,0,0.05);
-  max-height: 95px; /* ~2 rows visible */
-  overflow-y: auto;
+  gap: 10px;
 }
 .stack-item {
-  font-size: 12px;
-  padding: 4px 8px;
-  background: #f5f5f5;
+  font-size: 0.8rem;
+  padding: 4px 10px;
+  background: #f25f207f;
   border-radius: 4px;
   white-space: nowrap;
 }
 
-@media (max-width: 1024px) {
-  .career-content {
-    grid-template-columns: 1fr;
-    grid-template-rows: auto auto auto auto;
+/* Responsive: swap pill nav for dropdown */
+@media (max-width: 768px) {
+  .career-nav {
+    background: none;
+    border-radius: 0;
+    padding: 0;
   }
-  .career-description,
-  .career-achievements,
-  .career-stacks {
-    grid-column: 1;
-    max-height: none;
-    height: auto;
+  .career-nav-item {
+    display: none; /* hide pills */
+  }
+  .career-nav-dropdown {
+    display: block; /* show dropdown */
+    width: 100%;
+    margin-top: 8px;
   }
 }
 </style>
