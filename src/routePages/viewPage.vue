@@ -59,7 +59,7 @@ export default {
       <div class="componentHolder" id="career"><ViewCareer /></div>
       <div class="componentHolder" id="education"><ViewEducation /></div>
       <div class="componentHolder" id="certificates"><ViewCertification /></div>
-      <div class="componentHolder" id="skills"><ViewSkills /></div>
+      <div class="componentHolder" id="skills" style="background-color: black;"><ViewSkills /></div>
       <div class="componentHolder" id="vision"><ViewVision /></div>
 
       <footer class="page-footer">
