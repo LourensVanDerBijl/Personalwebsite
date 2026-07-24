@@ -23,6 +23,13 @@ export default {
           id: d.id,
           ...d.data()
         }));
+
+        // Sort certifications by completedDate descending (latest first)
+        certifications.value.sort((a, b) => {
+          const dateA = new Date(a.completedDate);
+          const dateB = new Date(b.completedDate);
+          return dateB - dateA;
+        });
       } catch (err) {
         console.error("Error loading certifications:", err);
       } finally {
@@ -116,9 +123,6 @@ export default {
   </section>
 </template>
 
-<style scoped>
-/* ... keep all your existing styles from before ... */
-</style>
 
 
 <style scoped>

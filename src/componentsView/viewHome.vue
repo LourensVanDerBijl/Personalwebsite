@@ -9,6 +9,11 @@ export default {
     const name = ref('');
     const tagline = ref('');
     const subtitle = ref('');
+    const linkedin = ref('');
+    const email = ref('');
+    const github = ref('');
+    const cvLink = ref('');
+    const transcriptLink = ref('');
 
     onMounted(async () => {
       try {
@@ -20,6 +25,11 @@ export default {
           name.value = data.name || '';
           tagline.value = data.tagline || '';
           subtitle.value = data.subtitle || '';
+          linkedin.value = data.linkedIn || '';
+          email.value = data.email || '';
+          github.value = data.gitHub || '';
+          cvLink.value = data.cvLink || '';
+          transcriptLink.value = data.transcriptLink || '';
         } else {
           console.warn('No such document!');
         }
@@ -29,21 +39,22 @@ export default {
     });
 
     const openLink = (url) => {
-      window.open(url, '_blank');
+      if (url) window.open(url, '_blank');
     };
 
     const sendEmail = (service) => {
+      if (!email.value) return;
       if (service === 'outlook') {
-        window.location.href = 'mailto:lourensvdbijl@gmail.com';
+        window.location.href = `mailto:${email.value}`;
       } else if (service === 'gmail') {
         window.open(
-          'https://mail.google.com/mail/?view=cm&fs=1&to=lourensvdbijl@gmail.com',
+          `https://mail.google.com/mail/?view=cm&fs=1&to=${email.value}`,
           '_blank'
         );
       }
     };
 
-    return { name, tagline, subtitle, openLink, sendEmail };
+    return { name, tagline, subtitle, linkedin, email, github, cvLink, transcriptLink, openLink, sendEmail };
   }
 };
 </script>
@@ -57,12 +68,12 @@ export default {
       <h2 class="subtitle">{{ subtitle }}</h2>
 
       <div class="buttons">
-        <button class="btn-secondary" @click="openLink('https://www.linkedin.com/in/louis-van-der-bijl-453a6a19b')">Connect</button>
+        <button class="btn-secondary" @click="openLink(linkedin)">Connect</button>
         <button class="btn-secondary" @click="sendEmail('outlook')">Email-Outlook</button>
         <button class="btn-secondary" @click="sendEmail('gmail')">Email-Gmail</button>
-        <button class="btn-secondary" @click="openLink('https://github.com/LourensVanDerBijl?tab=repositories')">GitHub</button>
-        <button class="btn-secondary" @click="openLink('https://drive.google.com/uc?export=download&id=19CdvvQBIcg4fshYY4nssQ_fnZuQxy_PH')">Download CV</button>
-        <button class="btn-secondary" @click="openLink('https://drive.google.com/uc?export=download&id=1jIdYOqDQQ2qIo71m9h2MzPwBnVdIRT54')">Download WD Transcript</button>
+        <button class="btn-secondary" @click="openLink(github)">GitHub</button>
+        <button class="btn-secondary" @click="openLink(cvLink)">Download CV</button>
+        <button class="btn-secondary" @click="openLink(transcriptLink)">Download WD Transcript</button>
       </div>
     </div>
 

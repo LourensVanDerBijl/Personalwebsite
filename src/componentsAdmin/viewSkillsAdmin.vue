@@ -1,21 +1,29 @@
 <script>
 import { ref, onMounted, computed, watch, nextTick } from 'vue';
 import { db } from '../firebase/index.js';
-import { collection, getDocs } from 'firebase/firestore';
+import { collection, getDocs, doc, setDoc, deleteDoc } from 'firebase/firestore';
 import { Chart, registerables } from 'chart.js';
 
 Chart.register(...registerables);
 
 export default {
-  name: 'ViewSkills',
+  name: 'ViewSkillsAdmin',
   setup() {
     const skills = ref([]);
     const loading = ref(true);
     const activeStack = ref("DevStack");
     const chartInstance = ref(null);
     const chartCanvas = ref(null);
+    const message = ref('');
 
     const stacks = ["DevStack", "WorkdayStack", "TechnologyStack", "ProductivityStack", "LeadershipStack"];
+
+    // Form fields
+    const formId = ref('');
+    const formName = ref('');
+    const formDescription = ref('');
+    const formPercentage = ref(0);
+    const formType = ref('DevStack');
 
     const loadSkills = async () => {
       try {
@@ -29,7 +37,6 @@ export default {
       } finally {
         loading.value = false;
         if (window.innerWidth > 768) {
-          // wait until DOM updates, then render chart
           nextTick(() => renderChart());
         }
       }
@@ -76,6 +83,43 @@ export default {
       });
     };
 
+    const editSkill = (skill) => {
+      formId.value = skill.id;
+      formName.value = skill.name;
+      formDescription.value = skill.description;
+      formPercentage.value = skill.percentage;
+      formType.value = skill.type;
+    };
+
+    const saveSkill = async () => {
+      try {
+        const docRef = doc(db, 'skills', formId.value || formName.value);
+        await setDoc(docRef, {
+          name: formName.value,
+          description: formDescription.value,
+          percentage: Number(formPercentage.value),
+          type: formType.value
+        });
+        message.value = '✅ Skill saved successfully!';
+        await loadSkills();
+        formId.value = '';
+      } catch (err) {
+        console.error("Error saving skill:", err);
+        message.value = '❌ Error saving skill.';
+      }
+    };
+
+    const deleteSkill = async (skillId) => {
+      try {
+        await deleteDoc(doc(db, 'skills', skillId));
+        message.value = '✅ Skill deleted.';
+        await loadSkills();
+      } catch (err) {
+        console.error("Error deleting skill:", err);
+        message.value = '❌ Error deleting skill.';
+      }
+    };
+
     onMounted(loadSkills);
     watch(activeStack, () => {
       if (window.innerWidth > 768) {
@@ -83,23 +127,17 @@ export default {
       }
     });
 
-    return { stacks, activeStack, filteredSkills, loading, chartCanvas };
+    return { stacks, activeStack, filteredSkills, loading, chartCanvas,
+             formId, formName, formDescription, formPercentage, formType,
+             editSkill, saveSkill, deleteSkill, message };
   }
 };
 </script>
 
 <template>
   <section class="skills-root">
-    <h1 class="title">SKILLS</h1>
+    <h1 class="title">SKILLS (Admin)</h1>
 
-    <div class="intro">
-      <p>
-        This section highlights my technical and leadership capabilities across multiple stacks.
-        Select a category below to explore my skills and see a visual breakdown of proficiency.
-      </p>
-    </div>
-
-    <!-- Desktop navbar -->
     <nav class="stack-nav desktop-nav">
       <button
         v-for="stack in stacks"
@@ -111,13 +149,6 @@ export default {
       </button>
     </nav>
 
-    <!-- Mobile dropdown -->
-    <div class="mobile-nav">
-      <select v-model="activeStack">
-        <option v-for="stack in stacks" :key="stack" :value="stack">{{ stack }}</option>
-      </select>
-    </div>
-
     <div v-if="loading" class="loading">Loading skills...</div>
 
     <div v-else class="content">
@@ -127,11 +158,9 @@ export default {
           <li v-for="skill in filteredSkills" :key="skill.id">
             <span class="skill-name">{{ skill.name }}</span>
             <span class="skill-desc"> – {{ skill.description }}</span>
-
-            <!-- Progress bar (mobile only) -->
-            <div class="progress-bar">
-              <div class="progress-fill" :style="{ width: skill.percentage + '%' }"></div>
-            </div>
+            <span class="skill-percent"> ({{ skill.percentage }}%)</span>
+            <button class="edit-btn" @click="editSkill(skill)">Edit</button>
+            <button class="delete-btn" @click="deleteSkill(skill.id)">Delete</button>
           </li>
         </ul>
       </div>
@@ -141,6 +170,29 @@ export default {
         <canvas ref="chartCanvas"></canvas>
       </div>
     </div>
+
+    <!-- Add/Edit Form -->
+    <div class="skill-form">
+      <h2>{{ formId ? 'Edit Skill' : 'Add Skill' }}</h2>
+      <form @submit.prevent="saveSkill">
+        <label>Name:
+          <input v-model="formName" type="text" />
+        </label>
+        <label>Description:
+          <input v-model="formDescription" type="text" />
+        </label>
+        <label>Percentage:
+          <input v-model="formPercentage" type="number" min="0" max="100" />
+        </label>
+        <label>Stack:
+          <select v-model="formType">
+            <option v-for="stack in stacks" :key="stack" :value="stack">{{ stack }}</option>
+          </select>
+        </label>
+        <button type="submit" class="btn-save">Save</button>
+      </form>
+      <p v-if="message" class="status-message">{{ message }}</p>
+    </div>
   </section>
 </template>
 
@@ -148,7 +200,7 @@ export default {
 .skills-root {
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  min-height: 100vh;
   width: 100%;
   background-color: #0a0b0d;
   color: #fff;
@@ -162,15 +214,6 @@ export default {
   border-left: 4px solid #ff4d00;
   padding-left: 12px;
   margin-bottom: 16px;
-}
-
-.intro {
-  background: #111;
-  padding: 12px;
-  border-radius: 6px;
-  margin-bottom: 16px;
-  color: #ccc;
-  font-size: 0.9rem;
 }
 
 .stack-nav {
@@ -193,19 +236,6 @@ export default {
   border-color: #ff4d00;
 }
 
-.mobile-nav {
-  display: none;
-  margin-bottom: 16px;
-}
-.mobile-nav select {
-  width: 100%;
-  padding: 8px;
-  border-radius: 4px;
-  background: #222;
-  color: #fff;
-  border: 1px solid #444;
-}
-
 .content {
   display: flex;
   gap: 20px;
@@ -221,46 +251,41 @@ export default {
   overflow-y: auto;
   font-size: 0.85rem;
 }
-
-/* Orange scrollbar */
-.skill-list::-webkit-scrollbar {
-  width: 6px;
-}
-.skill-list::-webkit-scrollbar-thumb {
-  background-color: #ff4d00;
-  border-radius: 10px;
-}
-
 .skill-list li {
   margin-bottom: 12px;
   color: #ddd;
 }
-
 .skill-name {
   font-weight: bold;
   color: #ff4d00;
 }
-
 .skill-desc {
   color: #ccc;
 }
-
-/* Progress bar hidden by default */
-.progress-bar {
-  background: #333;
-  border-radius: 4px;
-  height: 6px;
-  margin-top: 6px;
-  width: 100%;
-  display: none; /* only show on mobile */
+.skill-percent {
+  color: #fff;
+  margin-left: 6px;
 }
-.progress-fill {
-  background: #ff4d00;
-  height: 100%;
+.edit-btn, .delete-btn {
+  margin-left: 10px;
+  padding: 4px 8px;
+  font-size: 0.75rem;
   border-radius: 4px;
+  cursor: pointer;
 }
+.edit-btn {
+  background: #ff8c3c;
+  color: #fff;
+  border: none;
+}
+.edit-btn:hover { background: #e67320; }
+.delete-btn {
+  background: transparent;
+  color: #ff4d00;
+  border: 1px solid #ff4d00;
+}
+.delete-btn:hover { background: rgba(255,77,0,0.1); }
 
-/* Desktop chart */
 .skill-graph {
   flex: 1;
   background: #111;
@@ -275,13 +300,53 @@ export default {
   height: 100% !important;
 }
 
-/* Responsive rules */
-@media (max-width: 768px) {
-  .desktop-nav { display: none; }
-  .mobile-nav { display: block; }
-  .desktop-graph { display: none; }
-  .progress-bar { display: block; }
-  .content { flex-direction: column; }
-  .skill-list { width: 100%; flex: none; height: 100%; }
+.skill-form {
+  margin-top: 30px;
+  background: rgba(255,255,255,0.05);
+  padding: 20px;
+  border-radius: 8px;
+  width: 100%;
+}
+
+.skill-form h2 {
+  margin-bottom: 16px;
+  font-size: 1.2rem;
+  color: #ff4d00;
+}
+
+.skill-form label {
+  display: block;
+  margin-bottom: 10px;
+  color: #ccc;
+}
+
+.skill-form input,
+.skill-form select {
+  width: 100%;
+  padding: 8px;
+  border-radius: 6px;
+  border: 1px solid #ff4d00;
+  background: #0a0b0d;
+  color: #fff;
+  margin-top: 4px;
+}
+
+.btn-save {
+  background: #ff4d00;
+  color: #fff;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  margin-top: 10px;
+}
+.btn-save:hover {
+  background: #e63c00;
+}
+
+.status-message {
+  margin-top: 12px;
+  font-size: 0.9rem;
+  color: #ff8c3c;
 }
 </style>

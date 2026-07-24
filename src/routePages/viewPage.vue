@@ -1,8 +1,9 @@
 <script>
 import { ref, onMounted } from 'vue';
-import ViewNavbar from '../componentsView/viewNavbar.vue';
+import { db } from '../firebase/index.js';
+import { doc, getDoc } from 'firebase/firestore';
 
-// Import all your section components
+import ViewNavbar from '../componentsView/viewNavbar.vue';
 import ViewHome from '../componentsView/viewHome.vue';
 import ViewInfo from '../componentsView/viewInfo.vue';
 import ViewCareer from '../componentsView/viewCareer.vue';
@@ -24,7 +25,8 @@ export default {
     ViewVision
   },
   setup() {
-    const activeSection = ref('home'); // default section
+    const activeSection = ref('home');
+    const lastUpdate = ref(null);
 
     onMounted(() => {
       const observer = new IntersectionObserver(
@@ -41,16 +43,24 @@ export default {
       document.querySelectorAll('.componentHolder').forEach((section) => {
         observer.observe(section);
       });
+
+      // Load last update date from Firestore
+      const loadUpdateDate = async () => {
+        const updateDoc = await getDoc(doc(db, 'UpdateDate', 'UpdateDate'));
+        if (updateDoc.exists()) {
+          lastUpdate.value = updateDoc.data().Date;
+        }
+      };
+      loadUpdateDate();
     });
 
-    return { activeSection };
+    return { activeSection, lastUpdate };
   }
 };
 </script>
 
 <template>
   <div class="view-page-root">
-    <!-- Pass activeSection down to navbar -->
     <ViewNavbar :activeSection="activeSection" />
 
     <main class="page" role="main" aria-label="Main content">
@@ -63,7 +73,20 @@ export default {
       <div class="componentHolder" id="vision"><ViewVision /></div>
 
       <footer class="page-footer">
-        <router-link to="/admin">Admin</router-link>
+        <div class="status">
+          <span class="status-item">
+            Website: <span class="dot green"></span> Live
+          </span>
+          <span class="status-item">
+            Database: <span class="dot green"></span> Stable
+          </span>
+          <span class="status-item">
+            Authentication: <span class="dot green"></span> Secure
+          </span>
+        </div>
+        <div class="update">
+          Last Update: {{ lastUpdate || 'Loading...' }}
+        </div>
       </footer>
     </main>
   </div>
@@ -77,7 +100,7 @@ export default {
 }
 
 .page {
-  margin-left: 54px; /* match sidebar width on desktop */
+  margin-left: 54px;
   min-height: 100vh;
   background-color: #ffffff;
   color: #000000;
@@ -87,19 +110,57 @@ export default {
 
 .componentHolder {
   background: rgb(249, 249, 249);
-  width: 100% !important;       /* full width */
-  max-width: none !important;   /* remove max-width constraint */
-  margin: 0 !important;         /* remove margins */
-  padding: 0 !important;        /* remove padding */
-  height: 100vh;                /* each section fills viewport */
+  width: 100% !important;
+  max-width: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  height: 100vh;
   box-sizing: border-box;
-  border-radius: 0;             /* no rounding */
+  border-radius: 0;
 }
 
 .page-footer {
   margin-top: 15px;
-  padding-top: 12px;
+  padding: 12px 20px;
   border-top: 1px solid rgba(0,0,0,0.06);
+  background-color: #000;
+  color: #fff;
+  display: flex;
+  justify-content: space-between; /* pushes update to far right */
+  align-items: center;
+  font-size: 13px;
+}
+
+.status {
+  display: flex;
+  gap: 20px;
+}
+.status-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+}
+.dot.green {
+  background-color: #28a745;
+  box-shadow: 0 0 6px #28a745, 0 0 12px #28a745; /* glowing effect */
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% { box-shadow: 0 0 4px #28a745, 0 0 8px #28a745; }
+  50% { box-shadow: 0 0 8px #28a745, 0 0 16px #28a745; }
+  100% { box-shadow: 0 0 4px #28a745, 0 0 8px #28a745; }
+}
+
+.update {
+  font-style: italic;
+  color: #ccc;
 }
 
 /* Mobile view adjustments */
@@ -108,7 +169,6 @@ export default {
     margin-left: 0;
     margin-top: 54px;
   }
-
   .componentHolder {
     width: 100%;
     margin: 0;
@@ -116,5 +176,30 @@ export default {
     height: auto;
     min-height: 100vh;
   }
+ .page-footer {
+  margin-top: 15px;
+  padding: 12px 20px;
+  border-top: 1px solid rgba(0,0,0,0.06);
+  background-color: #000;
+  color: #fff;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+  flex-wrap: wrap; /* allow wrapping on small screens */
+}
+
+.status {
+  display: flex;
+  gap: 20px;
+  flex: 1; /* pushes update to the right */
+  flex-wrap: wrap; /* wrap status items if too long */
+}
+
+.update {
+  font-style: italic;
+  color: #ccc;
+  white-space: nowrap; /* keep it on one line */
+}
 }
 </style>

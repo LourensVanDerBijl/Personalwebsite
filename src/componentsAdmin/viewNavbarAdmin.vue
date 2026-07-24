@@ -6,12 +6,12 @@ import educationIcon from '../assets/SvgIcons/education.svg';
 import certificatesIcon from '../assets/SvgIcons/certificates.svg';
 import skillsIcon from '../assets/SvgIcons/skills.svg';
 import visionIcon from '../assets/SvgIcons/vision.svg';
-import loginIcon from '../assets/SvgIcons/login.svg';
-import ModalLogin from '../modals/modalLogin.vue';
+import logoutIcon from '../assets/SvgIcons/login.svg'; // 🔑 new icon
+import { auth } from '../firebase'; // Firebase auth
+import { signOut } from 'firebase/auth';
 
 export default {
-  name: 'ViewNavbar',
-  components: { ModalLogin },
+  name: 'ViewNavbarAdmin',
   props: {
     activeSection: {
       type: String,
@@ -28,24 +28,19 @@ export default {
         certificates: certificatesIcon,
         skills: skillsIcon,
         vision: visionIcon,
-        login: loginIcon
+        logout: logoutIcon
       },
-      sidebarWidth: '54px',
-      showLoginModal: false
+      sidebarWidth: '54px'
     };
   },
   methods: {
-    openLogin() {
-      this.showLoginModal = true;
-    },
-    closeLogin() {
-      this.showLoginModal = false;
-    },
-    submitLogin(credentials) {
-      // credentials = { email, password }
-      // TODO: hook into Firebase Auth
-      this.$router.push('/admin');
-      this.closeLogin();
+    async logout() {
+      try {
+        await signOut(auth);
+        this.$router.push('/'); // redirect back to public homepage
+      } catch (error) {
+        console.error('Error signing out:', error);
+      }
     }
   }
 };
@@ -53,7 +48,7 @@ export default {
 
 <template>
   <div>
-    <aside class="sidebar" role="navigation" aria-label="Main navigation">
+    <aside class="sidebar" role="navigation" aria-label="Admin navigation">
       <nav class="sidebar-inner" role="menubar" aria-orientation="vertical">
         <ul class="sidebar-nav" role="list">
           <li>
@@ -93,20 +88,14 @@ export default {
           </li>
         </ul>
 
+        <!-- Logout button -->
         <div class="sidebar-footer">
-          <button class="nav-link login-link" @click="openLogin">
-            <img :src="icons.login" class="icon" alt="Login" />
+          <button class="nav-link logout-link" @click="logout">
+            <img :src="icons.logout" class="icon" alt="Logout" />
           </button>
         </div>
       </nav>
     </aside>
-
-    <!-- Login Modal rendered outside the sidebar -->
-    <ModalLogin
-      v-if="showLoginModal"
-      @close="closeLogin"
-      @login="submitLogin"
-    />
   </div>
 </template>
 
@@ -189,62 +178,10 @@ export default {
   padding-top: 8px;
 }
 
-.login-link {
+.logout-link {
   width: 100%;
   justify-content: center;
   background-color: transparent;
   border: none;
-}
-
-/* Mobile view: convert sidebar to top navbar */
-@media (max-width: 768px) {
-  .sidebar {
-    position: fixed;
-    top: 0;
-    left: 0;
-    height: 54px;
-    width: 100% !important;
-    padding: 0 8px;
-    border-right: none;
-    border-bottom: 1px solid rgba(255,255,255,0.06);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-    background-color: #000 !important;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.5);
-  }
-
-  .sidebar-inner {
-    flex-direction: row;
-    justify-content: center;
-    align-items: center;
-    width: 100%;
-    height: 100%;
-    background-color: #000;
-  }
-
-  .sidebar-nav {
-    flex-direction: row;
-    gap: 16px;
-    padding: 0;
-    margin: 0;
-    width: auto;
-    background-color: #000;
-  }
-
-  .sidebar-footer {
-    display: none; /* hide login link on mobile */
-  }
-
-  .sidebar-nav .nav-link {
-    width: auto;
-    padding: 6px;
-  }
-
-  .sidebar-nav .icon {
-    width: 22px;
-    height: 22px;
-  }
 }
 </style>
