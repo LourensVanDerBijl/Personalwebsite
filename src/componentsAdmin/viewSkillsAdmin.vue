@@ -1,10 +1,7 @@
 <script>
-import { ref, onMounted, computed, watch, nextTick } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { db } from '../firebase/index.js';
 import { collection, getDocs, doc, setDoc, deleteDoc } from 'firebase/firestore';
-import { Chart, registerables } from 'chart.js';
-
-Chart.register(...registerables);
 
 export default {
   name: 'ViewSkillsAdmin',
@@ -12,8 +9,6 @@ export default {
     const skills = ref([]);
     const loading = ref(true);
     const activeStack = ref("DevStack");
-    const chartInstance = ref(null);
-    const chartCanvas = ref(null);
     const message = ref('');
 
     const stacks = ["DevStack", "WorkdayStack", "TechnologyStack", "ProductivityStack", "LeadershipStack"];
@@ -36,9 +31,6 @@ export default {
         console.error("Error loading skills:", err);
       } finally {
         loading.value = false;
-        if (window.innerWidth > 768) {
-          nextTick(() => renderChart());
-        }
       }
     };
 
@@ -46,49 +38,19 @@ export default {
       skills.value.filter(s => s.type === activeStack.value)
     );
 
-    const renderChart = () => {
-      if (!chartCanvas.value) return;
-      if (chartInstance.value) chartInstance.value.destroy();
-
-      const labels = filteredSkills.value.map(s => s.name);
-      const data = filteredSkills.value.map(s => s.percentage);
-
-      chartInstance.value = new Chart(chartCanvas.value, {
-        type: 'bar',
-        data: {
-          labels,
-          datasets: [{
-            label: 'Proficiency (%)',
-            data,
-            backgroundColor: 'rgba(255, 77, 0, 0.7)'
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          animation: { duration: 800 },
-          plugins: { legend: { display: false } },
-          scales: {
-            y: {
-              beginAtZero: true,
-              max: 100,
-              ticks: { color: '#fff' }
-            },
-            x: {
-              ticks: { display: false },
-              grid: { display: false }
-            }
-          }
-        }
-      });
-    };
-
     const editSkill = (skill) => {
       formId.value = skill.id;
       formName.value = skill.name;
       formDescription.value = skill.description;
       formPercentage.value = skill.percentage;
       formType.value = skill.type;
+    };
+
+    const updateDate = async () => {
+      const today = new Date();
+      const formattedDate = `${today.getFullYear()}/${String(today.getMonth()+1).padStart(2,'0')}/${String(today.getDate()).padStart(2,'0')}`;
+      const updateRef = doc(db, 'UpdateDate', 'UpdateDate');
+      await setDoc(updateRef, { Date: formattedDate });
     };
 
     const saveSkill = async () => {
@@ -100,6 +62,7 @@ export default {
           percentage: Number(formPercentage.value),
           type: formType.value
         });
+        await updateDate();
         message.value = '✅ Skill saved successfully!';
         await loadSkills();
         formId.value = '';
@@ -112,6 +75,7 @@ export default {
     const deleteSkill = async (skillId) => {
       try {
         await deleteDoc(doc(db, 'skills', skillId));
+        await updateDate();
         message.value = '✅ Skill deleted.';
         await loadSkills();
       } catch (err) {
@@ -121,13 +85,8 @@ export default {
     };
 
     onMounted(loadSkills);
-    watch(activeStack, () => {
-      if (window.innerWidth > 768) {
-        nextTick(() => renderChart());
-      }
-    });
 
-    return { stacks, activeStack, filteredSkills, loading, chartCanvas,
+    return { stacks, activeStack, filteredSkills, loading,
              formId, formName, formDescription, formPercentage, formType,
              editSkill, saveSkill, deleteSkill, message };
   }
@@ -138,7 +97,8 @@ export default {
   <section class="skills-root">
     <h1 class="title">SKILLS (Admin)</h1>
 
-    <nav class="stack-nav desktop-nav">
+    <!-- Nav bar -->
+    <nav class="stack-nav">
       <button
         v-for="stack in stacks"
         :key="stack"
@@ -151,31 +111,38 @@ export default {
 
     <div v-if="loading" class="loading">Loading skills...</div>
 
-    <div v-else class="content">
-      <!-- Skills list -->
-      <div class="skill-list">
-        <ul>
-          <li v-for="skill in filteredSkills" :key="skill.id">
-            <span class="skill-name">{{ skill.name }}</span>
-            <span class="skill-desc"> – {{ skill.description }}</span>
-            <span class="skill-percent"> ({{ skill.percentage }}%)</span>
-            <button class="edit-btn" @click="editSkill(skill)">Edit</button>
-            <button class="delete-btn" @click="deleteSkill(skill.id)">Delete</button>
-          </li>
-        </ul>
-      </div>
-
-      <!-- Desktop chart -->
-      <div class="skill-graph desktop-graph">
-        <canvas ref="chartCanvas"></canvas>
-      </div>
+    <!-- Skills Table -->
+    <div v-else class="skills-table-wrapper">
+      <table class="skills-table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Description</th>
+            <th>Percentage</th>
+            <th>Stack</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="skill in filteredSkills" :key="skill.id">
+            <td>{{ skill.name }}</td>
+            <td>{{ skill.description }}</td>
+            <td>{{ skill.percentage }}%</td>
+            <td>{{ skill.type }}</td>
+            <td>
+              <button class="edit-btn" @click="editSkill(skill)">Edit</button>
+              <button class="delete-btn" @click="deleteSkill(skill.id)">Delete</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
     </div>
 
     <!-- Add/Edit Form -->
     <div class="skill-form">
       <h2>{{ formId ? 'Edit Skill' : 'Add Skill' }}</h2>
-      <form @submit.prevent="saveSkill">
-        <label>Name:
+      <form @submit.prevent="saveSkill" class="form-grid">
+        <label class="full-width">Name:
           <input v-model="formName" type="text" />
         </label>
         <label>Description:
@@ -189,7 +156,9 @@ export default {
             <option v-for="stack in stacks" :key="stack" :value="stack">{{ stack }}</option>
           </select>
         </label>
-        <button type="submit" class="btn-save">Save</button>
+        <div class="full-width">
+          <button type="submit" class="btn-save">Save</button>
+        </div>
       </form>
       <p v-if="message" class="status-message">{{ message }}</p>
     </div>
@@ -200,11 +169,11 @@ export default {
 .skills-root {
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
+  height: 100vh; /* one full screen */
   width: 100%;
   background-color: #0a0b0d;
   color: #fff;
-  padding: 40px 20px;
+  padding: 20px 30px;
   box-sizing: border-box;
 }
 
@@ -216,62 +185,55 @@ export default {
   margin-bottom: 16px;
 }
 
+/* Nav bar */
 .stack-nav {
   display: flex;
-  gap: 8px;
+  gap: 12px;
   margin-bottom: 16px;
+  width: 100%;
 }
-
 .nav-btn {
+  flex: 1;
   background: #222;
   color: #fff;
   border: 1px solid #444;
-  padding: 6px 12px;
+  padding: 8px;
   border-radius: 4px;
   cursor: pointer;
-  font-size: 0.85rem;
+  font-size: 0.9rem;
 }
 .nav-btn.active {
   background: #ff4d00;
   border-color: #ff4d00;
 }
 
-.content {
-  display: flex;
-  gap: 20px;
+/* Table */
+.skills-table-wrapper {
   flex: 1;
-  min-height: 0;
+  overflow-y: auto;
+  margin-bottom: 16px;
+}
+.skills-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.skills-table th, .skills-table td {
+  border: 1px solid #333;
+  padding: 8px;
+  font-size: 0.9rem;
+}
+.skills-table th {
+  background: #111;
+  text-align: left;
 }
 
-.skill-list {
-  flex: 1;
-  background: #111;
-  padding: 12px;
-  border-radius: 6px;
-  overflow-y: auto;
-  font-size: 0.85rem;
-}
-.skill-list li {
-  margin-bottom: 12px;
-  color: #ddd;
-}
-.skill-name {
-  font-weight: bold;
-  color: #ff4d00;
-}
-.skill-desc {
-  color: #ccc;
-}
-.skill-percent {
-  color: #fff;
-  margin-left: 6px;
-}
+/* Buttons */
 .edit-btn, .delete-btn {
-  margin-left: 10px;
-  padding: 4px 8px;
-  font-size: 0.75rem;
+  padding: 6px 12px;
+  font-size: 0.8rem;
   border-radius: 4px;
   cursor: pointer;
+  font-weight: 600;
 }
 .edit-btn {
   background: #ff8c3c;
@@ -286,43 +248,29 @@ export default {
 }
 .delete-btn:hover { background: rgba(255,77,0,0.1); }
 
-.skill-graph {
-  flex: 1;
-  background: #111;
-  padding: 12px;
-  border-radius: 6px;
-  display: flex;
-  align-items: stretch;
-  justify-content: stretch;
-}
-.skill-graph canvas {
-  width: 100% !important;
-  height: 100% !important;
-}
-
+/* Form */
 .skill-form {
-  margin-top: 30px;
+  flex-shrink: 0;
+  max-height: 220px;
+  overflow-y: auto;
   background: rgba(255,255,255,0.05);
-  padding: 20px;
+  padding: 16px;
   border-radius: 8px;
-  width: 100%;
 }
-
-.skill-form h2 {
-  margin-bottom: 16px;
-  font-size: 1.2rem;
-  color: #ff4d00;
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
 }
-
-.skill-form label {
-  display: block;
-  margin-bottom: 10px;
-  color: #ccc;
+.form-grid label {
+  display: flex;
+  flex-direction: column;
+  color: #fff;
 }
-
-.skill-form input,
-.skill-form select {
-  width: 100%;
+.form-grid .full-width {
+  grid-column: span 2;
+}
+.skill-form input, .skill-form select {
   padding: 8px;
   border-radius: 6px;
   border: 1px solid #ff4d00;
@@ -338,14 +286,11 @@ export default {
   padding: 8px 14px;
   border-radius: 6px;
   cursor: pointer;
-  margin-top: 10px;
 }
-.btn-save:hover {
-  background: #e63c00;
-}
+.btn-save:hover { background: #e63c00; }
 
 .status-message {
-  margin-top: 12px;
+  margin-top: 8px;
   font-size: 0.9rem;
   color: #ff8c3c;
 }

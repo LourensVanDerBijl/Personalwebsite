@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <!-- Background frame -->
+  <rect width="32" height="32" rx="6" fill="#07080b"/>
+  
+  <!-- Left side brackets -->
+  <path d="M10 6H6v20h4" fill="none" stroke="#e9ecef" stroke-width="3" stroke-linecap="round"/>
+  
+  <!-- Glowing L shape -->
+  <path d="M12 10v12h6" fill="none" stroke="#ff4d00" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  
+  <!-- Terminal cursor -->
+  <rect x="21" y="19" width="5" height="3" fill="#ff4d00"/>
+</svg>

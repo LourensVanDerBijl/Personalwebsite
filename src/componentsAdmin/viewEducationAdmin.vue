@@ -2,7 +2,6 @@
 import { ref, onMounted } from 'vue';
 import { db } from '../firebase/index.js';
 import { collection, getDocs, doc, setDoc, deleteDoc } from 'firebase/firestore';
-import viewEducationImage from '../assets/images/viewEducation.png';
 
 export default {
   name: 'ViewEducationAdmin',
@@ -10,6 +9,7 @@ export default {
     const educationItems = ref([]);
     const selectedItem = ref(null);
     const message = ref('');
+    const uploading = ref(false);
 
     // Form fields
     const formId = ref('');
@@ -38,13 +38,6 @@ export default {
             url: data.url || ''
           });
         });
-
-        items.sort((a, b) => {
-          if (a.endDate === 'current') return -1;
-          if (b.endDate === 'current') return 1;
-          return parseInt(b.endDate) - parseInt(a.endDate);
-        });
-
         educationItems.value = items;
       } catch (error) {
         console.error('Error loading education history:', error);
@@ -52,6 +45,18 @@ export default {
     };
 
     const editItem = (item) => {
+      if (!item) {
+        selectedItem.value = null;
+        formId.value = '';
+        formName.value = '';
+        formSchool.value = '';
+        formGrade.value = '';
+        formStartDate.value = '';
+        formEndDate.value = '';
+        formDescription.value = '';
+        formUrl.value = '';
+        return;
+      }
       selectedItem.value = item;
       formId.value = item.id;
       formName.value = item.name;
@@ -61,6 +66,40 @@ export default {
       formEndDate.value = item.endDate;
       formDescription.value = item.description;
       formUrl.value = item.url;
+    };
+
+    const updateDate = async () => {
+      const today = new Date();
+      const formattedDate = `${today.getFullYear()}/${String(today.getMonth()+1).padStart(2,'0')}/${String(today.getDate()).padStart(2,'0')}`;
+      const updateRef = doc(db, 'UpdateDate', 'UpdateDate');
+      await setDoc(updateRef, { Date: formattedDate });
+    };
+
+    const uploadToImgBB = async (file) => {
+      uploading.value = true;
+      const formData = new FormData();
+      formData.append('image', file);
+      formData.append('key', '3349c3dc30a2389651ec2ff95ae722d6'); // replace with your key
+
+      try {
+        const res = await fetch('https://api.imgbb.com/1/upload', {
+          method: 'POST',
+          body: formData
+        });
+        const json = await res.json();
+
+        if (json.success) {
+          formUrl.value = json.data.url; // only save direct image URL
+          message.value = '✅ Image uploaded successfully!';
+        } else {
+          message.value = '❌ Upload failed.';
+        }
+      } catch (err) {
+        console.error(err);
+        message.value = '❌ Error uploading image.';
+      } finally {
+        uploading.value = false;
+      }
     };
 
     const saveItem = async () => {
@@ -75,6 +114,7 @@ export default {
           description: formDescription.value,
           url: formUrl.value
         });
+        await updateDate();
         message.value = '✅ Education entry saved successfully!';
         await loadEducation();
         selectedItem.value = null;
@@ -87,6 +127,7 @@ export default {
     const deleteItem = async (itemId) => {
       try {
         await deleteDoc(doc(db, 'education', itemId));
+        await updateDate();
         message.value = '✅ Education entry deleted.';
         await loadEducation();
         selectedItem.value = null;
@@ -98,156 +139,124 @@ export default {
 
     onMounted(loadEducation);
 
-    return { educationItems, selectedItem, message,
+    return { educationItems, selectedItem, message, uploading,
              formId, formName, formSchool, formGrade, formStartDate, formEndDate, formDescription, formUrl,
-             editItem, saveItem, deleteItem, viewEducationImage };
+             editItem, saveItem, deleteItem, uploadToImgBB };
   }
 };
 </script>
 
 <template>
-  <div id="education">
-    <section class="education-root">
-      <div class="education-text-column">
-        <h1 class="education-heading">EDUCATION (Admin)</h1>
+  <section class="education-root scrollable">
+    <h2 class="education-heading">Education – Admin Edit</h2>
 
-        <!-- Education Items -->
-        <div class="education-content-wrapper">
-          <div class="education-content">
-            <div
-              v-for="item in educationItems"
-              :key="item.id"
-              class="education-item"
-              @click="editItem(item)"
-            >
-              <div class="education-col-left">
-                <p><strong>Institution:</strong> {{ item.school }}</p>
-                <p><strong>Qualification:</strong> {{ item.name }}</p>
-                <p><strong>Date:</strong> {{ item.startDate }} – {{ item.endDate }}</p>
-                <p><strong>Grade:</strong> {{ item.grade }}</p>
-              </div>
-              <div class="education-col-right">
-                <p>{{ item.description }}</p>
-              </div>
-            </div>
-          </div>
-        </div>
+    <!-- Dropdown Selector -->
+    <div class="education-selector">
+      <label>Select Entry:</label>
+      <select @change="editItem($event.target.value ? educationItems.find(e => e.id === $event.target.value) : null)">
+        <option disabled selected value="">-- Choose an entry --</option>
+        <option v-for="item in educationItems" :key="item.id" :value="item.id">
+          {{ item.name }} ({{ item.school }})
+        </option>
+        <option value="">+ New Entry</option>
+      </select>
+    </div>
 
-        <!-- Edit/Add Form -->
-        <div class="education-form">
-          <h2>{{ selectedItem ? 'Edit Education Entry' : 'Add Education Entry' }}</h2>
-          <form @submit.prevent="saveItem">
-            <label>Qualification:
-              <input v-model="formName" type="text" />
-            </label>
-            <label>Institution:
-              <input v-model="formSchool" type="text" />
-            </label>
-            <label>Grade (NQF Level):
-              <input v-model="formGrade" type="text" />
-            </label>
-            <label>Start Date:
-              <input v-model="formStartDate" type="text" />
-            </label>
-            <label>End Date:
-              <input v-model="formEndDate" type="text" />
-            </label>
-            <label>Description:
-              <textarea v-model="formDescription"></textarea>
-            </label>
-            <label>Image URL:
-              <input v-model="formUrl" type="text" />
-            </label>
-            <button type="submit" class="btn-save">Save</button>
-            <button type="button" class="btn-delete" v-if="selectedItem" @click="deleteItem(selectedItem.id)">Delete</button>
-          </form>
-          <p v-if="message" class="status-message">{{ message }}</p>
-        </div>
+    <!-- Edit/Add Form -->
+    <div class="education-form">
+      <h3>{{ selectedItem ? 'Edit Education Entry' : 'Add Education Entry' }}</h3>
+      <form @submit.prevent="saveItem">
+        <label>Qualification:
+          <input v-model="formName" type="text" />
+        </label>
+        <label>Institution:
+          <input v-model="formSchool" type="text" />
+        </label>
+        <label>Grade (NQF Level):
+          <input v-model="formGrade" type="text" />
+        </label>
+        <label>Start Date:
+          <input v-model="formStartDate" type="text" />
+        </label>
+        <label>End Date:
+          <input v-model="formEndDate" type="text" />
+        </label>
+        <label>Description:
+          <textarea v-model="formDescription"></textarea>
+        </label>
 
-        <!-- Image Block -->
-        <div class="education-image-block">
-          <img :src="viewEducationImage" alt="Education certificate" />
-        </div>
-      </div>
-    </section>
-  </div>
+        <!-- Upload field -->
+        <label>Certificate Image:
+          <input type="file" @change="uploadToImgBB($event.target.files[0])" />
+        </label>
+        <p v-if="uploading">Uploading...</p>
+        <p v-if="formUrl">Image URL: {{ formUrl }}</p>
+
+        <button type="submit" class="btn-save">Save</button>
+        <button type="button" class="btn-delete" v-if="selectedItem" @click="deleteItem(selectedItem.id)">Delete</button>
+      </form>
+      <p v-if="message" class="status-message">{{ message }}</p>
+    </div>
+  </section>
 </template>
 
 <style scoped>
-div#education {
-  width: 100vw;
-  height: 100vh;
-  background-color: #0a0b0d;
-  overflow: hidden;
-}
-
-section.education-root {
-  min-height: 100vh;
+.education-root {
   display: flex;
   flex-direction: column;
-  padding: 0;
+  height: 100%;
+  width: 100%;
+  background: #0a0b0d; /* black background */
+  color: #fff; /* white text */
+  padding: 30px 40px;
   box-sizing: border-box;
 }
 
-.education-text-column {
-  display: flex;
-  flex-direction: column;
-  flex-grow: 1;
-  align-items: flex-start;
-  justify-content: flex-start;
-  padding: 40px 5% 20px 5%;
+.scrollable {
+  overflow-y: auto;
+}
+
+/* Orange scrollbar */
+.scrollable::-webkit-scrollbar {
+  width: 8px;
+}
+.scrollable::-webkit-scrollbar-thumb {
+  background: #ff4d00;
+  border-radius: 4px;
+}
+.scrollable::-webkit-scrollbar-track {
+  background: #222;
+}
+.scrollable {
+  scrollbar-color: #ff4d00 #222;
+  scrollbar-width: thin;
 }
 
 .education-heading {
-  margin: 0 0 20px 0;
-  font-size: clamp(1.8rem, 4vw, 3rem);
-  color: #fff;
-  text-transform: uppercase;
+  font-size: 1.4rem;
+  font-weight: 600;
+  margin-bottom: 20px;
   border-left: 4px solid #ff4d00;
-  padding-left: 24px;
-  align-self: flex-start;
+  padding-left: 12px;
+  color: #fff;
 }
 
-.education-content-wrapper {
-  flex: 0 0 auto;
-  width: 100%;
-  display: flex;
-  justify-content: flex-start;
+.education-selector {
+  margin-bottom: 20px;
 }
-
-.education-content {
-  background: rgba(255, 255, 255, 0);
-  padding: 20px;
-  overflow-y: auto;
-  max-height: 55vh;
-  width: 90%;
+.education-selector label {
+  margin-right: 10px;
+  font-weight: 500;
 }
-
-.education-item {
-  display: grid;
-  grid-template-columns: 1fr 2fr;
-  gap: 20px;
-  padding: 12px;
-  border-bottom: 1px solid rgba(255,255,255,0.1);
-  cursor: pointer;
-  transition: background 0.2s ease;
-}
-.education-item:hover {
-  background: rgba(255,77,0,0.2);
-}
-
-.education-col-left p,
-.education-col-right p {
-  font-size: 0.7rem;
-  color: rgba(255,255,255,0.85);
-  margin: 4px 0;
-}
-.education-col-left strong {
-  color: #ff4d00;
+.education-selector select {
+  padding: 8px;
+  border-radius: 6px;
+  border: 1px solid #ff4d00;
+  background: #0a0b0d;
+  color: #fff;
 }
 
 .education-form {
-  margin-top: 20px;
   background: rgba(255,255,255,0.05);
   padding: 20px;
   border-radius: 8px;
@@ -256,7 +265,7 @@ section.education-root {
 .education-form label {
   display: block;
   margin-bottom: 10px;
-  color: #ccc;
+  color: #fff;
 }
 .education-form input,
 .education-form textarea {
@@ -264,10 +273,14 @@ section.education-root {
   padding: 8px;
   border-radius: 6px;
   border: 1px solid #ff4d00;
-  background: #0a0b0d;
-  color: #fff;
+  background: #0a0b0d; /* dark input background */
+  color: #fff; /* white text */
   margin-top: 4px;
 }
+.education-form textarea {
+  min-height: 100px;
+}
+
 .btn-save {
   background: #ff4d00;
   color: #fff;
@@ -299,5 +312,15 @@ section.education-root {
   margin-top: 12px;
   font-size: 0.9rem;
   color: #ff8c3c;
+}
+
+.education-image-block {
+  margin-top: 20px;
+  width: 90%;
+}
+.education-image-block img {
+  max-width: 100%;
+  border-radius: 8px;
+  border: 1px solid #ff4d00;
 }
 </style>
