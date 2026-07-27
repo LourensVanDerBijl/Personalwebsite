@@ -11,11 +11,19 @@ export default {
   setup() {
     const skills = ref([]);
     const loading = ref(true);
-    const activeStack = ref("DevStack");
+    const activeStack = ref("Enterprise Integration"); // updated default
     const chartInstance = ref(null);
     const chartCanvas = ref(null);
 
-    const stacks = ["DevStack", "WorkdayStack", "TechnologyStack", "ProductivityStack", "LeadershipStack"];
+    // Updated stack names
+    const stacks = [
+      "Enterprise Integration",
+      "Workday Platform",
+      "Software Engineering",
+      "Data Engineering",
+      "Development Tools",
+      "Leadership & Consulting"
+    ];
 
     const loadSkills = async () => {
       try {
@@ -29,7 +37,6 @@ export default {
       } finally {
         loading.value = false;
         if (window.innerWidth > 768) {
-          // wait until DOM updates, then render chart
           nextTick(() => renderChart());
         }
       }
@@ -94,7 +101,7 @@ export default {
 
     <div class="intro">
       <p>
-        This section highlights my technical and leadership capabilities across multiple stacks.
+        This section highlights my technical and leadership capabilities across multiple categories.
         Select a category below to explore my skills and see a visual breakdown of proficiency.
       </p>
     </div>
