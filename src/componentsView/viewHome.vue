@@ -15,6 +15,16 @@ export default {
     const cvLink = ref('');
     const transcriptLink = ref('');
 
+    // Helper: convert Google Drive "view" link to direct download link
+    const toDownloadLink = (driveUrl) => {
+      if (!driveUrl) return '';
+      const match = driveUrl.match(/\/d\/([^/]+)\//);
+      if (match && match[1]) {
+        return `https://drive.google.com/uc?export=download&id=${match[1]}`;
+      }
+      return driveUrl; // fallback if not a standard Drive link
+    };
+
     onMounted(async () => {
       try {
         const docRef = doc(db, 'views', 'home');
@@ -28,8 +38,8 @@ export default {
           linkedin.value = data.linkedIn || '';
           email.value = data.email || '';
           github.value = data.gitHub || '';
-          cvLink.value = data.cvLink || '';
-          transcriptLink.value = data.transcriptLink || '';
+          cvLink.value = toDownloadLink(data.cvLink || '');
+          transcriptLink.value = toDownloadLink(data.transcriptLink || '');
         } else {
           console.warn('No such document!');
         }
