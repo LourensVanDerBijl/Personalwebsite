@@ -79,7 +79,7 @@ export default {
       uploading.value = true;
       const formData = new FormData();
       formData.append('image', file);
-      formData.append('key', '3349c3dc30a2389651ec2ff95ae722d6'); // replace with your key
+      formData.append('key', import.meta.env.VITE_IMGBB_API_KEY); // now hidden in env
 
       try {
         const res = await fetch('https://api.imgbb.com/1/upload', {
