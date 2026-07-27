@@ -8,17 +8,25 @@ export default {
   setup() {
     const skills = ref([]);
     const loading = ref(true);
-    const activeStack = ref("DevStack");
+    const activeStack = ref("Enterprise Integration");
     const message = ref('');
 
-    const stacks = ["DevStack", "WorkdayStack", "TechnologyStack", "ProductivityStack", "LeadershipStack"];
+    // Updated stack names
+    const stacks = [
+      "Enterprise Integration",
+      "Workday Platform",
+      "Software Engineering",
+      "Data Engineering",
+      "Development Tools",
+      "Leadership & Consulting"
+    ];
 
     // Form fields
     const formId = ref('');
     const formName = ref('');
     const formDescription = ref('');
     const formPercentage = ref(0);
-    const formType = ref('DevStack');
+    const formType = ref('Enterprise Integration');
 
     const loadSkills = async () => {
       try {
