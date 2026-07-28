@@ -166,19 +166,26 @@ export default {
       <!-- Edit/Add Form -->
       <div class="career-form">
         <form @submit.prevent="saveCompany">
-          <label>Company:
-            <input v-model="formCompany" type="text" />
-          </label>
-          <label>Title:
-            <input v-model="formTitle" type="text" />
-          </label>
-          <label>Start Date:
-            <input v-model="formStartDate" type="text" />
-          </label>
-          <label>End Date:
-            <input v-model="formEndDate" type="text" />
-          </label>
+          <!-- Paired fields -->
+          <div class="form-row">
+            <label>Company:
+              <input v-model="formCompany" type="text" />
+            </label>
+            <label>Title:
+              <input v-model="formTitle" type="text" />
+            </label>
+          </div>
 
+          <div class="form-row">
+            <label>Start Date:
+              <input v-model="formStartDate" type="text" />
+            </label>
+            <label>End Date:
+              <input v-model="formEndDate" type="text" />
+            </label>
+          </div>
+
+          <!-- Full-width paragraphs -->
           <label>Paragraph 1:
             <textarea v-model="formDesc1"></textarea>
           </label>
@@ -195,20 +202,25 @@ export default {
             <textarea v-model="formDesc5"></textarea>
           </label>
 
+          <!-- Achievements -->
           <label>Achievements:</label>
-          <div v-for="(ach, index) in formAchievements" :key="index">
+          <div v-for="(ach, index) in formAchievements" :key="index" class="form-row">
             <input v-model="formAchievements[index]" placeholder="Achievement" />
           </div>
           <button type="button" @click="formAchievements.push('')">+ Add Achievement</button>
 
+          <!-- Stacks -->
           <label>Stacks:</label>
-          <div v-for="(stack, index) in formStacks" :key="index">
+          <div v-for="(stack, index) in formStacks" :key="index" class="form-row">
             <input v-model="formStacks[index]" placeholder="Stack" />
           </div>
           <button type="button" @click="formStacks.push('')">+ Add Stack</button>
 
-          <button type="submit" class="btn-save">Save Company</button>
-          <button type="button" class="btn-delete" v-if="selectedCompany" @click="deleteCompany(selectedCompany.id)">Delete Company</button>
+          <!-- Actions -->
+          <div class="form-actions">
+            <button type="submit" class="btn-save">Save Company</button>
+            <button type="button" class="btn-delete" v-if="selectedCompany" @click="deleteCompany(selectedCompany.id)">Delete Company</button>
+          </div>
         </form>
 
         <p v-if="message" class="status-message">{{ message }}</p>
@@ -217,20 +229,24 @@ export default {
   </section>
 </template>
 
+
 <style scoped>
+/* Root: lock section to viewport */
 .career-root {
+  height: 100vh;
   display: flex;
   flex-direction: column;
-  height: 100%;
-  width: 100%;
+  overflow: hidden;        /* contain scroll inside holder */
+  padding: 30px 40px;
   background: #fff;
   color: #000;
-  padding: 30px 40px;
   box-sizing: border-box;
 }
 
 .scrollable {
-  overflow-y: auto;
+  flex: 1;
+  min-height: 0;           /* allow shrink inside flex */
+  overflow-y: auto;        /* vertical scrollbar */
 }
 
 /* Orange scrollbar */
@@ -249,27 +265,30 @@ export default {
   scrollbar-width: thin;
 }
 
+/* Heading */
 .career-heading {
   font-size: 1.4rem;
   font-weight: 600;
   margin-bottom: 20px;
   border-left: 4px solid #ff4d00;
   padding-left: 12px;
-  color: #000; /* black text for readability */
+  color: #000;
 }
 
+/* Layout: nav + form */
 .career-layout {
   display: grid;
-  grid-template-columns: 200px 1fr;
+  grid-template-columns: 220px 1fr;
   gap: 20px;
+  min-height: 0;           /* critical for flex scroll */
 }
 
+/* Nav bar */
 .career-nav {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
-
 .btn-new {
   background: #ff4d00;
   color: #fff;
@@ -283,7 +302,6 @@ export default {
 .btn-new:hover {
   background: #e63c00;
 }
-
 .career-nav-item {
   padding: 6px 14px;
   font-size: 13px;
@@ -297,15 +315,18 @@ export default {
   color: #ff4d00;
 }
 
+/* Form container */
 .career-form {
-  background: rgba(255,255,255,0.05);
+  background: #fafafa;
   padding: 20px;
   border-radius: 8px;
+  overflow-y: auto;
 }
 .career-form label {
   display: block;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
   color: #000;
+  font-size: 0.9rem;
 }
 .career-form input,
 .career-form textarea {
@@ -319,9 +340,26 @@ export default {
   font-size: 0.95rem;
 }
 .career-form textarea {
-  min-height: 100px; /* bigger for paragraphs */
+  min-height: 100px; /* full-width paragraphs */
 }
 
+/* Paired fields */
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+.form-row label {
+  margin-bottom: 0;
+}
+
+/* Actions */
+.form-actions {
+  margin-top: 16px;
+  display: flex;
+  gap: 12px;
+}
 .btn-save {
   background: #ff4d00;
   color: #fff;
@@ -329,12 +367,10 @@ export default {
   padding: 10px 16px;
   border-radius: 6px;
   cursor: pointer;
-  margin-top: 10px;
 }
 .btn-save:hover {
   background: #e63c00;
 }
-
 .btn-delete {
   background: transparent;
   color: #ff4d00;
@@ -342,17 +378,26 @@ export default {
   padding: 10px 16px;
   border-radius: 6px;
   cursor: pointer;
-  margin-left: 10px;
-  margin-top: 10px;
   font-size: 0.95rem;
 }
 .btn-delete:hover {
   background: rgba(255,77,0,0.1);
 }
 
+/* Status message */
 .status-message {
   margin-top: 12px;
   font-size: 0.9rem;
   color: #ff8c3c;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .career-layout {
+    grid-template-columns: 1fr;
+  }
+  .form-row {
+    grid-template-columns: 1fr;
+  }
 }
 </style>
