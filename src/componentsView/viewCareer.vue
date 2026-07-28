@@ -34,9 +34,10 @@ export default {
           });
         });
 
+        // Sort so "current" comes first
         items.sort((a, b) => {
-          if (a.endDate === 'current') return -1;
-          if (b.endDate === 'current') return 1;
+          if (a.endDate.toLowerCase() === 'current') return -1;
+          if (b.endDate.toLowerCase() === 'current') return 1;
           return parseInt(b.endDate) - parseInt(a.endDate);
         });
 
@@ -65,46 +66,37 @@ export default {
 
 <template>
   <div class="career-root">
-    <!-- Header row: heading left, nav right -->
-    <div class="career-header-row">
-      <h1 class="career-heading">Career History</h1>
-      <div class="career-nav">
-        <!-- Desktop pill nav -->
-        <div
-          v-for="company in companies"
-          :key="company.id"
-          class="career-nav-item"
-          :class="{ active: selectedCompany && selectedCompany.id === company.id }"
-          @click="selectCompany(company)"
-        >
-          {{ company.company }}
-        </div>
+    <!-- Heading -->
+    <h1 class="career-heading">Career History</h1>
 
-        <!-- Mobile dropdown -->
-        <select
-          class="career-nav-dropdown"
-          v-model="selectedCompany"
-          @change="selectCompany(selectedCompany)"
-        >
-          <option v-for="company in companies" :key="company.id" :value="company">
-            {{ company.company }}
-          </option>
-        </select>
+    <!-- Career nav (red block) -->
+    <div class="career-nav">
+      <!-- Desktop pill nav -->
+      <div
+        v-for="company in companies"
+        :key="company.id"
+        class="career-nav-item"
+        :class="{ active: selectedCompany && selectedCompany.id === company.id }"
+        @click="selectCompany(company)"
+      >
+        {{ company.company }}
       </div>
+
+      <!-- Mobile dropdown -->
+      <select
+        class="career-nav-dropdown"
+        v-model="selectedCompany"
+        @change="selectCompany(selectedCompany)"
+      >
+        <option v-for="company in companies" :key="company.id" :value="company">
+          {{ company.company }}
+        </option>
+      </select>
     </div>
 
     <!-- Main Content -->
     <div v-if="selectedCompany" class="career-content">
-      <!-- Company Info -->
-      <div class="career-info">
-        <div class="career-info-top">
-          <h2>{{ selectedCompany.company }}</h2>
-          <p>{{ selectedCompany.startDate }} - {{ selectedCompany.endDate }}</p>
-        </div>
-        <p class="career-title">{{ selectedCompany.title }}</p>
-      </div>
-
-      <!-- Tab Nav -->
+      <!-- Tab Nav (green block) -->
       <div class="career-subnav">
         <button
           class="tab-btn"
@@ -132,6 +124,10 @@ export default {
       <!-- Scrollable Content Area -->
       <div class="career-details">
         <div v-if="activeTab === 'description'">
+          <div class="career-info-top">
+            <h2>{{ selectedCompany.title }}</h2>
+            <p>{{ selectedCompany.startDate }} – {{ selectedCompany.endDate }}</p>
+          </div>
           <p v-for="(desc, index) in selectedCompany.descriptions" :key="index">
             {{ desc }}
           </p>
@@ -154,41 +150,38 @@ export default {
     </div>
   </div>
 </template>
-
 <style scoped>
-/* Root */
+/* Root: lock section to viewport */
 .career-root {
-  display: flex;
-  flex-direction: column;
+  height: 100vh;           /* Lock height to the viewport */
+  display: flex;           /* Flexbox layout */
+  flex-direction: column;  /* Stack heading, nav, content vertically */
+  overflow: hidden;        /* Prevent whole page scroll */
   padding: 20px;
-  min-height: 100vh;
+  padding-top: 8px !important;
   background: #fff;
+  box-sizing: border-box;
 }
 
-/* Header row: heading left, nav right */
-.career-header-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
+/* Heading */
 .career-heading {
-  color: #000000;
+  color: #000;
   font-size: clamp(1.6rem, 4vw, 2.5rem);
-  margin: 0;
+  margin-top: 12px !important;
+  margin-bottom: 32px !important;
   border-left: 4px solid #ff4d00;
   padding-left: 20px;
 }
 
+/* Career nav (red block) */
 .career-nav {
   display: flex;
   gap: 6px;
   padding: 6px;
+  border-radius: 0 !important;
+  padding-bottom: 5px !important;
   background: #ff4d00;
-  border-radius: 24px;
 }
-
-/* Desktop pill nav items */
 .career-nav-item {
   padding: 6px 14px;
   font-size: 13px;
@@ -201,7 +194,7 @@ export default {
   border-radius: 20px;
 }
 
-/* Mobile dropdown (hidden by default) */
+/* Mobile dropdown */
 .career-nav-dropdown {
   display: none;
   padding: 8px 12px;
@@ -212,100 +205,88 @@ export default {
   font-size: 14px;
 }
 
-/* Main content container */
+/* Subnav (secondary tier) */
+.career-subnav {
+  background-color: #ff4d004a;
+  display: flex;
+  width: 100%;
+  padding: 0;
+  margin-top: 0;
+  border-radius: 0 !important;
+}
+.career-subnav button {
+  color: #908c8c;
+  font-weight: 100;
+  background: transparent;
+  border: 1px solid #ff4d0031;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  padding: 2px 16px;
+  margin-right: -1px;
+  font-size: 0.7rem;
+}
+.career-subnav button:hover,
+.career-subnav button.active {
+  color: #ededed;
+  border-bottom: 2px solid #ff4d00;
+  background: #ff4d0067;
+}
+
+/* Content wrapper: fills remaining space */
 .career-content {
-  margin-top: 30px;
-  height: calc(100vh - 160px);
-  max-height: calc(100vh - 160px);
+  flex: 1;                 /* Fill vertical space */
   display: flex;
   flex-direction: column;
-  background-color: #ffffff00;
-  border: 1px solid #e0e0e000;
-  border-left: 4px solid #ff4d00;
-  border-radius: 6px;
-  padding: 28px;
-  overflow: hidden;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0);
+  min-height: 0;           /* CRITICAL: allow shrink */
+  overflow: hidden;        /* contain scroll inside details */
+  border-left: none !important;
+  border-radius: 0 !important;
+  padding: 0;
 }
 
-.career-info {
-  padding-bottom: 12px;
-  border-bottom: 1px solid #d5d3d200;
-  margin-bottom: 20px;
-}
-
-/* Company info */
+/* Info top */
 .career-info-top {
   display: flex;
   align-items: baseline;
   gap: 12px;
-  margin-bottom: 8px;
+  margin-bottom: 20px;
+  font-size: 13px !important;
+  padding: 20px;
 }
-.career-info h2 {
+.career-info-top h2 {
   color: #ff4d00;
   margin: 0;
-  font-size: 20px;
+  font-size: 22px;
+  font-weight: 700;
 }
-.career-info p:not(.career-title) {
-  font-size: 0.8rem;
+.career-info-top p {
+  font-size: 0.85rem;
   font-style: italic;
   color: #666;
   margin: 0;
 }
-.career-info .career-title {
-  font-size: 0.85rem;
-  font-style: italic;
-  margin: 0 0 16px 0;
-}
 
-/* Subnav tabs */
-.career-subnav {
-  display: flex;
-  gap: 10px;
-  background-color: #f4f2f2;
-  border: 1px solid #ff5100;
-  border-left: none;
-  border-right: none;
-  padding: 6px 12px;
-  margin-bottom: 20px;
-}
-.career-subnav button {
-  color: #666666;
-  font-weight: 600;
-  background: transparent;
-  border: none;
-  border-bottom: 2px solid transparent;
-  transition: all 0.2s ease;
-  cursor: pointer;
-  padding: 6px 0;
-  margin-right: 20px;
-  font-size: 0.9rem;
-}
-.career-subnav button:hover,
-.career-subnav button.active {
-  color: #ff4d00;
-  border-bottom: 2px solid #ff4d00;
-}
-
-/* Scrollable details area */
+/* Details area: scrollable inside holder */
 .career-details {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  padding-right: 15px;
-  color: #444444;
-  font-size: 0.85rem;
+  flex: 1;                 /* Fill remaining space */
+  min-height: 0;           /* CRITICAL for flex scroll */
+  overflow-y: auto;        /* Vertical scrollbar */
+  margin-top: 0;
+  padding: 0 15px 20px 20px;
+  color: #444;
+  font-size: 13px;
   line-height: 1.6;
-  border-top: none;
-  border-left: none;
-  padding: 24px;
 }
 .career-details p {
   margin-bottom: 14px;
+  font-size: 13px !important;
 }
 .career-details li {
   margin-bottom: 10px;
+  font-size: 13px !important;
 }
+
+/* Scrollbar styling */
 .career-details::-webkit-scrollbar {
   width: 6px;
 }
@@ -313,12 +294,10 @@ export default {
   background-color: #ff4d00;
   border-radius: 10px;
 }
-.career-details::-webkit-scrollbar-thumb:hover {
-  background-color: #ff4d00;
-}
 
 /* Stack items */
 .stack-list {
+  padding: 10px 0;
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
@@ -331,7 +310,7 @@ export default {
   white-space: nowrap;
 }
 
-/* Responsive: swap pill nav for dropdown */
+/* Responsive */
 @media (max-width: 768px) {
   .career-nav {
     background: none;
@@ -339,12 +318,15 @@ export default {
     padding: 0;
   }
   .career-nav-item {
-    display: none; /* hide pills */
+    display: none;
   }
   .career-nav-dropdown {
-    display: block; /* show dropdown */
+    display: block;
     width: 100%;
     margin-top: 8px;
+  }
+  .career-subnav {
+    width: 100%;
   }
 }
 </style>
