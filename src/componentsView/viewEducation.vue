@@ -2,7 +2,7 @@
 import { ref, onMounted } from 'vue';
 import { db } from '../firebase/index.js';
 import { collection, getDocs } from 'firebase/firestore';
-import ModalEducation from '../modals/ModalEducation.vue';
+import ModalEducation from '../modals/modalEducation.vue'
 
 export default {
   name: 'ViewEducation',
