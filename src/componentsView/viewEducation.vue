@@ -2,10 +2,7 @@
 import { ref, onMounted } from 'vue';
 import { db } from '../firebase/index.js';
 import { collection, getDocs } from 'firebase/firestore';
-import ModalEducation from '../modals/modalEducation.vue';
-
-// Import your image
-import viewEducationImage from '../assets/images/viewEducation.png';
+import ModalEducation from '../modals/ModalEducation.vue';
 
 export default {
   name: 'ViewEducation',
@@ -13,16 +10,6 @@ export default {
   setup() {
     const educationItems = ref([]);
     const selectedItem = ref(null);
-    const showModal = ref(false);
-
-    // detect mobile
-    const isMobile = ref(false);
-    if (typeof window !== 'undefined') {
-      isMobile.value = window.innerWidth <= 768;
-      window.addEventListener('resize', () => {
-        isMobile.value = window.innerWidth <= 768;
-      });
-    }
 
     const loadEducation = async () => {
       try {
@@ -32,11 +19,11 @@ export default {
           const data = doc.data();
           items.push({
             id: doc.id,
-            name: data.name || '',
             school: data.School || '',
-            grade: data.nqfLevel ? `NQF ${data.nqfLevel}` : '',
+            name: data.name || '',
             startDate: data.startDate || '',
             endDate: data.endDate || '',
+            grade: data.nqfLevel ? `NQF ${data.nqfLevel}` : '',
             description: data.description || '',
             url: data.url || ''
           });
@@ -55,19 +42,16 @@ export default {
     };
 
     const openModal = (item) => {
-      if (isMobile.value) return; // disable modal on mobile
       selectedItem.value = item;
-      showModal.value = true;
     };
 
     const closeModal = () => {
-      showModal.value = false;
       selectedItem.value = null;
     };
 
     onMounted(loadEducation);
 
-    return { educationItems, selectedItem, showModal, openModal, closeModal, viewEducationImage, isMobile };
+    return { educationItems, selectedItem, openModal, closeModal };
   }
 };
 </script>
@@ -75,39 +59,44 @@ export default {
 <template>
   <div id="education">
     <section class="education-root">
-      <div class="education-text-column">
-        <h1 class="education-heading">EDUCATION</h1>
-
-        <!-- Education Items -->
-        <div class="education-content-wrapper">
-          <div class="education-content">
-            <div
-              v-for="item in educationItems"
-              :key="item.id"
-              class="education-item"
-              @click="openModal(item)"
-            >
-              <div class="education-col-left">
-                <p><strong>Institution:</strong> {{ item.school }}</p>
-                <p><strong>Qualification:</strong> {{ item.name }}</p>
-                <p><strong>Date:</strong> {{ item.startDate }} – {{ item.endDate }}</p>
-                <p><strong>Grade:</strong> {{ item.grade }}</p>
-              </div>
-              <div class="education-col-right">
-                <p>{{ item.description }}</p>
-              </div>
+      <h1 class="education-heading">EDUCATION</h1>
+      <div class="education-list">
+        <div
+          v-for="item in educationItems"
+          :key="item.id"
+          class="education-entry"
+          @click="openModal(item)"
+        >
+          <!-- Left column -->
+          <div class="education-left">
+            <div class="education-item">
+              <span class="education-label">Institution</span>
+              <span class="education-value">{{ item.school }}</span>
+            </div>
+            <div class="education-item">
+              <span class="education-label">Qualification</span>
+              <span class="education-value">{{ item.name }}</span>
+            </div>
+            <div class="education-item">
+              <span class="education-label">Date</span>
+              <span class="education-value">{{ item.startDate }} – {{ item.endDate }}</span>
+            </div>
+            <div class="education-item" v-if="item.grade">
+              <span class="education-label">Grade</span>
+              <span class="education-value">{{ item.grade }}</span>
             </div>
           </div>
-        </div>
 
-        <!-- Image Block -->
-        <div class="education-image-block">
-          <img :src="viewEducationImage" alt="Education certificate" />
+          <!-- Right column -->
+          <div class="education-right">
+            <p>{{ item.description }}</p>
+          </div>
         </div>
       </div>
 
+      <!-- Modal -->
       <ModalEducation
-        v-if="showModal && !isMobile"
+        v-if="selectedItem"
         :item="selectedItem"
         @close="closeModal"
       />
@@ -116,142 +105,170 @@ export default {
 </template>
 
 <style scoped>
-div#education {
-  width: 100vw;
-  height: 100vh;
+#education {
+  width: 100%;
+  min-height: 100vh;
   background-color: #0a0b0d;
+  color: #fff;
   overflow: hidden;
 }
 
 section.education-root {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  padding: 0;
-  box-sizing: border-box;
+  padding-top: 24px;
 }
 
-.education-text-column {
-  display: flex;
-  flex-direction: column;
-  flex-grow: 1;
-  align-items: flex-start;
-  justify-content: flex-start;
-  padding: 40px 5% 20px 5%;
-}
-
-.education-heading {
-  margin: 0 0 20px 0;
-  font-size: clamp(1.8rem, 4vw, 3rem);
-  color: #fff;
-  text-transform: uppercase;
-  border-left: 4px solid #ff4d00;
-  padding-left: 24px;
-  align-self: flex-start;
-}
-
-.education-content-wrapper {
-  flex: 0 0 auto;
-  width: 100%;
-  display: flex;
-  justify-content: flex-start;
-}
-
-.education-content {
-  background: rgba(255, 255, 255, 0);
-  padding: 20px;
-  overflow-y: auto;
-  max-height: 55vh;
-  width: 90%;
-}
-
-.education-item {
-  display: grid;
-  grid-template-columns: 1fr 2fr;
-  gap: 20px;
-  padding: 12px;
-  border-bottom: 1px solid rgba(255,255,255,0.1);
-  cursor: pointer;
-  transition: background 0.2s ease;
-}
-.education-item:hover {
-  background: rgba(255,77,0,0.2);
-}
-
-.education-col-left p,
-.education-col-right p {
-  font-size: 0.7rem;
-  color: rgba(255,255,255,0.85);
-  margin: 4px 0;
-}
-.education-col-left strong {
-  color: #ff4d00;
-}
-
-/* Image block anchored to bottom */
-.education-image-block {
-  display: flex;
+/* Heading (keep large) */
+h1.education-heading {
+  margin-top: 10px;
+  margin-bottom: 20px;
+  margin-left: 40px;
   position: relative;
-  width: calc(100vw - 54px);
-  left: -82px;
-  flex-grow: 1;
+  z-index: 0;
+  display: flex;
+  align-items: center;
+  font-size: 1.6rem; /* keep title large */
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.education-heading::before {
+  content: '';
+  width: 4px;
+  height: 20px;
+  background-color: #ff4d00;
+  margin-right: 12px;
+}
+
+/* List container */
+.education-list {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding-left: 10px;
+  padding-right: 10px;
+  padding-top: 10px;
+  box-sizing: border-box;
+  max-height: calc(100vh - 120px);
+  overflow-y: auto;
+  position: relative;
+  z-index: 1;
+}
+
+/* Entry card (smaller height) */
+.education-entry {
+  display: flex;
+  gap: 30px;
+  align-items: stretch;
+  background-color: #0c0c0c;
+  border: 1px solid #222;
+  border-radius: 6px;
+  min-height: 150px; /* reduced height */
+  padding: 15px;     /* reduced padding */
   overflow: hidden;
-  margin: 0;
-  background-color: #11111100;
-  align-items: flex-end; /* anchor image to bottom */
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+  position: relative;
+  z-index: 2;
+}
+.education-entry:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0 10px rgba(255, 77, 0, 0.6);
+  z-index: 10;
 }
 
-.education-image-block img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-  align-self: flex-end; /* ensure image sits at bottom */
+/* Left column */
+.education-left {
+  flex: 0 0 35%;
+  padding-right: 15px;
+  padding-left: 15px;
+  display: flex;
+  flex-direction: column;
+  border-right: 2px solid;
+  border-image-source: linear-gradient(
+    to bottom,
+    rgba(255, 77, 0, 0) 0%,
+    rgb(255, 77, 0) 50%,
+    rgba(255, 77, 0, 0) 100%
+  );
+  border-image-slice: 1;
 }
 
-/* Scrollbar styles */
-.education-content::-webkit-scrollbar {
+/* Field blocks */
+.education-item {
+  display: flex;
+  flex-direction: column;
+  border-bottom: 1px solid;
+  border-image-source: linear-gradient(to right, rgb(255, 77, 0), rgba(255, 77, 0, 0));
+  border-image-slice: 1;
+  padding-bottom: 3px;
+  margin-bottom: 6px;
+}
+.education-item:last-child {
+  border-bottom: none !important;
+  border-image-source: none !important;
+  padding-bottom: 0;
+  margin-bottom: 0;
+}
+
+/* Text (smaller sizes) */
+.education-label {
+  color: rgb(255, 77, 0);
+  line-height: 1.2;
+  margin-bottom: 0;
+  font-size: 9px; /* reduced further */
+  text-transform: uppercase;
+  font-weight: 600;
+}
+.education-value {
+  color: #ffffff;
+  line-height: 1.2;
+  margin-top: 0;
+  font-size: 11px; /* reduced further */
+}
+
+/* Right column */
+.education-right {
+  flex: 1;
+  padding: 15px;
+  overflow-y: auto;
+}
+.education-right p {
+  color: #b0b0b0;
+  font-size: 11px; /* reduced further */
+  line-height: 1.3;
+  text-align: justify;
+}
+
+/* Scrollbar styling */
+.education-entry::-webkit-scrollbar {
   width: 4px;
 }
-.education-content::-webkit-scrollbar-track {
+.education-entry::-webkit-scrollbar-track {
   background: rgba(255, 255, 255, 0.05);
 }
-.education-content::-webkit-scrollbar-thumb {
-  background: #ff4d00;
+.education-entry::-webkit-scrollbar-thumb {
+  background: rgb(255, 77, 0);
   border-radius: 10px;
-  box-shadow: 0 0 10px rgba(255,77,0,0.5);
+  box-shadow: 0 0 8px rgba(255, 77, 0, 0.5);
 }
 
-/* MOBILE VIEW */
-@media (max-width: 768px) {
-  section.education-root {
-    padding: 20px;
+/* Mobile view adjustments */
+@media (max-width: 1024px) {
+  .education-entry {
+    flex-direction: column;
+    min-height: auto;
   }
-  .education-heading {
-    font-size: clamp(1.5rem, 6vw, 2.2rem);
-    margin-bottom: 16px;
-    text-align: center;
-  }
-  .education-content {
-    max-height: none;
-    overflow-y: auto;
-    width: 100%;
-  }
-  .education-item {
-    display: block;
-    text-align: center;
-    border-bottom: 1px solid rgba(255,255,255,0.1);
-    padding: 12px;
-    cursor: default;
-  }
-  .education-col-left {
-    margin: 0 auto;
-  }
-  .education-col-right {
+
+  .education-right {
     display: none;
   }
-  .education-image-block {
-    display: none;
+
+  h1.education-heading {
+    margin-left: 20px;
+  }
+
+  .education-left {
+    border-right: none;
+    border-bottom: 1px solid #222;
   }
 }
 </style>
