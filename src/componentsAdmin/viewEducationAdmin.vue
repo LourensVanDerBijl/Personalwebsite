@@ -79,7 +79,7 @@ export default {
       uploading.value = true;
       const formData = new FormData();
       formData.append('image', file);
-      formData.append('key', import.meta.env.VITE_IMGBB_API_KEY); // now hidden in env
+      formData.append('key', import.meta.env.VITE_IMGBB_API_KEY);
 
       try {
         const res = await fetch('https://api.imgbb.com/1/upload', {
@@ -89,7 +89,7 @@ export default {
         const json = await res.json();
 
         if (json.success) {
-          formUrl.value = json.data.url; // only save direct image URL
+          formUrl.value = json.data.url;
           message.value = '✅ Image uploaded successfully!';
         } else {
           message.value = '❌ Upload failed.';
@@ -166,161 +166,176 @@ export default {
     <div class="education-form">
       <h3>{{ selectedItem ? 'Edit Education Entry' : 'Add Education Entry' }}</h3>
       <form @submit.prevent="saveItem">
-        <label>Qualification:
-          <input v-model="formName" type="text" />
-        </label>
-        <label>Institution:
-          <input v-model="formSchool" type="text" />
-        </label>
-        <label>Grade (NQF Level):
-          <input v-model="formGrade" type="text" />
-        </label>
-        <label>Start Date:
-          <input v-model="formStartDate" type="text" />
-        </label>
-        <label>End Date:
-          <input v-model="formEndDate" type="text" />
-        </label>
+        <!-- Row 1 -->
+        <div class="form-row">
+          <label>Qualification:
+            <input v-model="formName" type="text" />
+          </label>
+          <label>Institution:
+            <input v-model="formSchool" type="text" />
+          </label>
+        </div>
+
+        <!-- Row 2 -->
+        <div class="form-row">
+          <label>Start Date:
+            <input v-model="formStartDate" type="text" />
+          </label>
+          <label>End Date:
+            <input v-model="formEndDate" type="text" />
+          </label>
+        </div>
+
+        <!-- Row 3 -->
+        <div class="form-row">
+          <label>NQF Grade:
+            <input v-model="formGrade" type="text" />
+          </label>
+          <label>Certificate File:
+            <input type="file" @change="uploadToImgBB($event.target.files[0])" />
+          </label>
+        </div>
+
+        <!-- Full-width description -->
         <label>Description:
           <textarea v-model="formDescription"></textarea>
         </label>
 
-        <!-- Upload field -->
-        <label>Certificate Image:
-          <input type="file" @change="uploadToImgBB($event.target.files[0])" />
-        </label>
         <p v-if="uploading">Uploading...</p>
         <p v-if="formUrl">Image URL: {{ formUrl }}</p>
 
-        <button type="submit" class="btn-save">Save</button>
-        <button type="button" class="btn-delete" v-if="selectedItem" @click="deleteItem(selectedItem.id)">Delete</button>
+        <div class="form-actions">
+          <button type="submit" class="btn-save">Save Entry</button>
+          <button type="button" class="btn-delete" v-if="selectedItem" @click="deleteItem(selectedItem.id)">Delete Entry</button>
+        </div>
       </form>
       <p v-if="message" class="status-message">{{ message }}</p>
     </div>
   </section>
 </template>
-
 <style scoped>
 .education-root {
   display: flex;
   flex-direction: column;
-  height: 100%;
+  height: 100vh;
   width: 100%;
-  background: #0a0b0d; /* black background */
-  color: #fff; /* white text */
-  padding: 30px 40px;
+  background: #0a0b0d;
+  color: #fff;
+  padding: 20px 30px; /* reduced padding */
   box-sizing: border-box;
 }
 
-.scrollable {
-  overflow-y: auto;
-}
-
-/* Orange scrollbar */
-.scrollable::-webkit-scrollbar {
-  width: 8px;
-}
-.scrollable::-webkit-scrollbar-thumb {
-  background: #ff4d00;
-  border-radius: 4px;
-}
-.scrollable::-webkit-scrollbar-track {
-  background: #222;
-}
-.scrollable {
-  scrollbar-color: #ff4d00 #222;
-  scrollbar-width: thin;
-}
-
 .education-heading {
-  font-size: 1.4rem;
+  font-size: 1.2rem; /* smaller heading */
   font-weight: 600;
-  margin-bottom: 20px;
-  border-left: 4px solid #ff4d00;
-  padding-left: 12px;
+  margin-bottom: 16px;
+  border-left: 3px solid #ff4d00;
+  padding-left: 10px;
   color: #fff;
 }
 
 .education-selector {
-  margin-bottom: 20px;
+  margin-bottom: 16px;
 }
 .education-selector label {
-  margin-right: 10px;
+  margin-right: 8px;
   font-weight: 500;
+  font-size: 0.8rem; /* smaller label text */
 }
 .education-selector select {
-  padding: 8px;
-  border-radius: 6px;
+  padding: 6px; /* tighter padding */
+  border-radius: 4px;
   border: 1px solid #ff4d00;
   background: #0a0b0d;
   color: #fff;
+  font-size: 0.8rem; /* smaller text */
 }
 
 .education-form {
   background: rgba(255,255,255,0.05);
-  padding: 20px;
-  border-radius: 8px;
+  padding: 16px; /* reduced padding */
+  border-radius: 6px;
   width: 90%;
+}
+.education-form h3 {
+  margin-bottom: 12px;
+  font-size: 1rem; /* smaller subheading */
+  font-weight: 600;
+  color: #ff4d00;
 }
 .education-form label {
   display: block;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
   color: #fff;
+  font-size: 0.8rem; /* smaller label text */
 }
 .education-form input,
 .education-form textarea {
   width: 100%;
-  padding: 8px;
-  border-radius: 6px;
+  padding: 6px; /* tighter padding */
+  border-radius: 4px;
   border: 1px solid #ff4d00;
-  background: #0a0b0d; /* dark input background */
-  color: #fff; /* white text */
-  margin-top: 4px;
+  background: #0a0b0d;
+  color: #fff;
+  margin-top: 3px;
+  font-size: 0.8rem; /* smaller text */
 }
 .education-form textarea {
-  min-height: 100px;
+  min-height: 80px; /* shorter textarea */
 }
 
+/* Two-column rows */
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px; /* reduced gap */
+  margin-bottom: 10px;
+}
+.form-row label {
+  margin-bottom: 0;
+}
+
+/* Actions */
+.form-actions {
+  margin-top: 12px;
+  display: flex;
+  gap: 10px;
+}
+.btn-save,
+.btn-delete {
+  font-size: 0.8rem; /* smaller button text */
+  padding: 6px 12px; /* tighter buttons */
+  border-radius: 4px;
+  cursor: pointer;
+}
 .btn-save {
   background: #ff4d00;
   color: #fff;
   border: none;
-  padding: 8px 14px;
-  border-radius: 6px;
-  cursor: pointer;
-  margin-top: 10px;
 }
 .btn-save:hover {
   background: #e63c00;
 }
-
 .btn-delete {
   background: transparent;
   color: #ff4d00;
   border: 1px solid #ff4d00;
-  padding: 8px 14px;
-  border-radius: 6px;
-  cursor: pointer;
-  margin-top: 10px;
-  margin-left: 10px;
 }
 .btn-delete:hover {
   background: rgba(255,77,0,0.1);
 }
 
+/* Status message */
 .status-message {
-  margin-top: 12px;
-  font-size: 0.9rem;
+  margin-top: 10px;
+  font-size: 0.8rem; /* smaller status text */
   color: #ff8c3c;
 }
 
-.education-image-block {
-  margin-top: 20px;
-  width: 90%;
-}
-.education-image-block img {
-  max-width: 100%;
-  border-radius: 8px;
-  border: 1px solid #ff4d00;
+/* Responsive */
+@media (max-width: 768px) {
+  .form-row {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

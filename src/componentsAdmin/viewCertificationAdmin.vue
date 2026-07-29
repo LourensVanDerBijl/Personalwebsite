@@ -8,12 +8,10 @@ export default {
   setup() {
     const certifications = ref([]);
     const loading = ref(true);
-    const selectedCert = ref(null);
     const message = ref('');
     const uploading = ref(false);
 
-    // Form fields
-    const formId = ref('');
+    // Form fields for new certification
     const formCourseName = ref('');
     const formPlatform = ref('');
     const formCompletedDate = ref('');
@@ -33,27 +31,6 @@ export default {
       } finally {
         loading.value = false;
       }
-    };
-
-    const editCert = (cert) => {
-      if (!cert) {
-        // New entry
-        selectedCert.value = null;
-        formId.value = '';
-        formCourseName.value = '';
-        formPlatform.value = '';
-        formCompletedDate.value = '';
-        formType.value = '';
-        formUrl.value = '';
-        return;
-      }
-      selectedCert.value = cert;
-      formId.value = cert.id;
-      formCourseName.value = cert.courseName;
-      formPlatform.value = cert.platform;
-      formCompletedDate.value = cert.completedDate;
-      formType.value = cert.type;
-      formUrl.value = cert.url;
     };
 
     const updateDate = async () => {
@@ -76,7 +53,7 @@ export default {
         });
         const json = await res.json();
         if (json.success) {
-          formUrl.value = json.data.url; // only direct URL
+          formUrl.value = json.data.url;
           message.value = '✅ Image uploaded successfully!';
         } else {
           message.value = '❌ Upload failed.';
@@ -91,7 +68,7 @@ export default {
 
     const saveCert = async () => {
       try {
-        const docRef = doc(db, 'Certifications', formId.value || formCourseName.value);
+        const docRef = doc(db, 'Certifications', formCourseName.value);
         await setDoc(docRef, {
           courseName: formCourseName.value,
           platform: formPlatform.value,
@@ -102,7 +79,12 @@ export default {
         await updateDate();
         message.value = '✅ Certification saved successfully!';
         await loadCertifications();
-        selectedCert.value = null;
+        // reset form
+        formCourseName.value = '';
+        formPlatform.value = '';
+        formCompletedDate.value = '';
+        formType.value = '';
+        formUrl.value = '';
       } catch (err) {
         console.error("Error saving certification:", err);
         message.value = '❌ Error saving certification.';
@@ -115,7 +97,6 @@ export default {
         await updateDate();
         message.value = '✅ Certification deleted.';
         await loadCertifications();
-        selectedCert.value = null;
       } catch (err) {
         console.error("Error deleting certification:", err);
         message.value = '❌ Error deleting certification.';
@@ -124,23 +105,23 @@ export default {
 
     onMounted(loadCertifications);
 
-    return { certifications, loading, selectedCert, message, uploading,
-             formId, formCourseName, formPlatform, formCompletedDate, formType, formUrl,
-             editCert, saveCert, deleteCert, uploadToImgBB };
+    return { certifications, loading, message, uploading,
+             formCourseName, formPlatform, formCompletedDate, formType, formUrl,
+             saveCert, deleteCert, uploadToImgBB };
   }
 };
 </script>
 
 <template>
   <section class="certification-root">
-    <h2 class="cert-heading">Certifications – Admin Edit</h2>
+    <h2 class="cert-heading">Certifications – Admin</h2>
 
-    <!-- Table Panel -->
+    <!-- Table/List View -->
     <div class="cert-table-wrapper">
       <table class="cert-table">
         <thead>
           <tr>
-            <th>Actions</th>
+            <th>Delete</th>
             <th>Course Name</th>
             <th>Platform</th>
             <th>Completed Date</th>
@@ -151,7 +132,6 @@ export default {
         <tbody>
           <tr v-for="cert in certifications" :key="cert.id">
             <td>
-              <button class="edit-btn" @click="editCert(cert)">Edit</button>
               <button class="delete-btn" @click="deleteCert(cert.id)">Delete</button>
             </td>
             <td>{{ cert.courseName }}</td>
@@ -160,179 +140,159 @@ export default {
             <td>{{ cert.type }}</td>
             <td>{{ cert.url }}</td>
           </tr>
+
+          <!-- Add New Row -->
+          <tr class="add-row">
+            <td colspan="6">
+              <form @submit.prevent="saveCert" class="add-form">
+                <input v-model="formCourseName" type="text" placeholder="Course Name" required />
+                <input v-model="formPlatform" type="text" placeholder="Platform" required />
+                <input v-model="formCompletedDate" type="date" required />
+                <select v-model="formType" required>
+                  <option disabled value="">Select Category</option>
+                  <option value="Development">Development</option>
+                  <option value="Leadership">Leadership</option>
+                  <option value="Technology">Technology</option>
+                  <option value="Productivity">Productivity</option>
+                </select>
+                <input type="file" @change="uploadToImgBB($event.target.files[0])" />
+                <p v-if="uploading">Uploading...</p>
+                <p v-if="formUrl">Image URL: {{ formUrl }}</p>
+                <button type="submit" class="btn-save">Add Certification</button>
+              </form>
+            </td>
+          </tr>
         </tbody>
       </table>
     </div>
 
-    <!-- Form Panel -->
-    <div class="cert-form">
-      <h3>{{ selectedCert ? 'Edit Certification' : 'Add Certification' }}</h3>
-      <form @submit.prevent="saveCert" class="form-grid">
-        <label class="full-width">Course Name:
-          <input v-model="formCourseName" type="text" />
-        </label>
-
-        <label>Platform:
-          <input v-model="formPlatform" type="text" />
-        </label>
-
-        <label>Completed Date:
-          <input v-model="formCompletedDate" type="date" />
-        </label>
-
-        <label>Category:
-          <select v-model="formType">
-            <option value="Development">Development</option>
-            <option value="Leadership">Leadership</option>
-            <option value="Technology">Technology</option>
-            <option value="Productivity">Productivity</option>
-          </select>
-        </label>
-
-        <label>Certificate Image:
-          <input type="file" @change="uploadToImgBB($event.target.files[0])" />
-        </label>
-
-        <p v-if="uploading">Uploading...</p>
-        <p v-if="formUrl">Image URL: {{ formUrl }}</p>
-
-        <div class="full-width">
-          <button type="submit" class="btn-save">Save</button>
-          <button type="button" class="btn-delete" v-if="selectedCert" @click="deleteCert(selectedCert.id)">Delete</button>
-        </div>
-      </form>
-      <p v-if="message" class="status-message">{{ message }}</p>
-    </div>
+    <p v-if="message" class="status-message">{{ message }}</p>
   </section>
 </template>
-
 <style scoped>
 .certification-root {
   display: flex;
   flex-direction: column;
-  height: 100vh; /* one full screen */
+  height: 100vh;
   width: 100%;
   background: #fff;
   color: #000;
-  padding: 20px 30px;
+  padding: 15px 20px; /* reduced padding */
   box-sizing: border-box;
 }
 
 .cert-heading {
-  font-size: 1.4rem;
+  font-size: 1rem; /* smaller heading */
   font-weight: 600;
-  margin-bottom: 12px;
-  border-left: 4px solid #ff4d00;
-  padding-left: 12px;
+  margin-bottom: 8px;
+  border-left: 3px solid #ff4d00;
+  padding-left: 8px;
+  color: #000;
 }
 
-/* Table panel */
+/* Table wrapper */
 .cert-table-wrapper {
   flex: 1;
   overflow-y: auto;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
 }
+
+/* Table */
 .cert-table {
   width: 100%;
   border-collapse: collapse;
+  font-size: 0.7rem; /* smaller text */
 }
 .cert-table th, .cert-table td {
   border: 1px solid #ddd;
-  padding: 8px;
-  font-size: 0.9rem;
+  padding: 4px 6px; /* tighter padding */
 }
 .cert-table th {
   background: #f9f9f9;
   text-align: left;
-}
-
-/* Buttons */
-.edit-btn, .delete-btn {
-  padding: 6px 12px;
-  font-size: 0.8rem;
-  border-radius: 4px;
-  cursor: pointer;
   font-weight: 600;
 }
-.edit-btn {
-  background: #ff8c3c;
-  color: #fff;
-  border: none;
-}
-.edit-btn:hover {
-  background: #e67320;
-}
 
+/* Delete button */
 .delete-btn {
   background: transparent;
   color: #ff4d00;
   border: 1px solid #ff4d00;
+  padding: 3px 8px; /* smaller button */
+  font-size: 0.65rem;
+  border-radius: 3px;
+  cursor: pointer;
+  font-weight: 600;
 }
 .delete-btn:hover {
   background: rgba(255,77,0,0.1);
 }
 
-/* Form panel */
-.cert-form {
-  flex-shrink: 0;
-  max-height: 280px;       /* compact form */
-  overflow-y: auto;        /* scroll inside form */
-  background: rgba(0,0,0,0.05);
-  padding: 16px;
-  border-radius: 8px;
-}
-.form-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-}
-.form-grid label {
-  display: flex;
-  flex-direction: column;
-  color: #000;
-}
-.form-grid .full-width {
-  grid-column: span 2;
-}
-
-.cert-form input,
-.cert-form select {
+/* Add new row */
+.add-row td {
+  background: #fafafa;
   padding: 8px;
-  border-radius: 6px;
+}
+.add-form {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 6px; /* tighter gap */
+  align-items: center;
+}
+.add-form input,
+.add-form select {
+  padding: 5px;
+  font-size: 0.65rem; /* smaller input text */
+  border-radius: 3px;
   border: 1px solid #ff4d00;
   background: #fff;
   color: #000;
-  margin-top: 4px;
+}
+.add-form p {
+  grid-column: span 6;
+  font-size: 0.65rem;
+  margin: 2px 0;
+  color: #666;
 }
 
+/* Save button */
 .btn-save {
   background: #ff4d00;
   color: #fff;
   border: none;
-  padding: 8px 14px;
-  border-radius: 6px;
+  padding: 5px 10px;
+  font-size: 0.65rem;
+  border-radius: 3px;
   cursor: pointer;
+  font-weight: 600;
+  grid-column: span 6;
+  justify-self: start;
 }
 .btn-save:hover {
   background: #e63c00;
 }
 
-.btn-delete {
-  background: transparent;
-  color: #ff4d00;
-  border: 1px solid #ff4d00;
-  padding: 8px 14px;
-  border-radius: 6px;
-  cursor: pointer;
-  margin-left: 10px;
-}
-.btn-delete:hover {
-  background: rgba(255,77,0,0.1);
+/* Status message */
+.status-message {
+  margin-top: 6px;
+  font-size: 0.7rem;
+  color: #ff8c3c;
 }
 
-.status-message {
-  margin-top: 8px;
-  font-size: 0.9rem;
-  color: #ff8c3c;
+/* Responsive */
+@media (max-width: 768px) {
+  .certification-root {
+    padding: 10px;
+  }
+  .cert-table {
+    font-size: 0.65rem;
+  }
+  .add-form {
+    grid-template-columns: 1fr;
+  }
+  .btn-save {
+    grid-column: span 1;
+    width: 100%;
+  }
 }
 </style>

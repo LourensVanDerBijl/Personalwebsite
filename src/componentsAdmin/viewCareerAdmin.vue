@@ -229,7 +229,6 @@ export default {
   </section>
 </template>
 
-
 <style scoped>
 /* Root: lock section to viewport */
 .career-root {
