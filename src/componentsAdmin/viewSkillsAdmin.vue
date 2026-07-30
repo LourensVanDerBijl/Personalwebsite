@@ -11,7 +11,6 @@ export default {
     const activeStack = ref("Enterprise Integration");
     const message = ref('');
 
-    // Updated stack names
     const stacks = [
       "Enterprise Integration",
       "Workday Platform",
@@ -21,8 +20,7 @@ export default {
       "Leadership & Consulting"
     ];
 
-    // Form fields
-    const formId = ref('');
+    // Form fields for new skill
     const formName = ref('');
     const formDescription = ref('');
     const formPercentage = ref(0);
@@ -46,14 +44,6 @@ export default {
       skills.value.filter(s => s.type === activeStack.value)
     );
 
-    const editSkill = (skill) => {
-      formId.value = skill.id;
-      formName.value = skill.name;
-      formDescription.value = skill.description;
-      formPercentage.value = skill.percentage;
-      formType.value = skill.type;
-    };
-
     const updateDate = async () => {
       const today = new Date();
       const formattedDate = `${today.getFullYear()}/${String(today.getMonth()+1).padStart(2,'0')}/${String(today.getDate()).padStart(2,'0')}`;
@@ -63,7 +53,7 @@ export default {
 
     const saveSkill = async () => {
       try {
-        const docRef = doc(db, 'skills', formId.value || formName.value);
+        const docRef = doc(db, 'skills', formName.value);
         await setDoc(docRef, {
           name: formName.value,
           description: formDescription.value,
@@ -73,7 +63,11 @@ export default {
         await updateDate();
         message.value = '✅ Skill saved successfully!';
         await loadSkills();
-        formId.value = '';
+        // reset form
+        formName.value = '';
+        formDescription.value = '';
+        formPercentage.value = 0;
+        formType.value = activeStack.value;
       } catch (err) {
         console.error("Error saving skill:", err);
         message.value = '❌ Error saving skill.';
@@ -95,8 +89,8 @@ export default {
     onMounted(loadSkills);
 
     return { stacks, activeStack, filteredSkills, loading,
-             formId, formName, formDescription, formPercentage, formType,
-             editSkill, saveSkill, deleteSkill, message };
+             formName, formDescription, formPercentage, formType,
+             saveSkill, deleteSkill, message };
   }
 };
 </script>
@@ -128,7 +122,7 @@ export default {
             <th>Description</th>
             <th>Percentage</th>
             <th>Stack</th>
-            <th>Actions</th>
+            <th>Delete</th>
           </tr>
         </thead>
         <tbody>
@@ -138,38 +132,29 @@ export default {
             <td>{{ skill.percentage }}%</td>
             <td>{{ skill.type }}</td>
             <td>
-              <button class="edit-btn" @click="editSkill(skill)">Edit</button>
               <button class="delete-btn" @click="deleteSkill(skill.id)">Delete</button>
+            </td>
+          </tr>
+
+          <!-- Add New Row -->
+          <tr class="add-row">
+            <td colspan="5">
+              <form @submit.prevent="saveSkill" class="add-form">
+                <input v-model="formName" type="text" placeholder="Skill Name" required />
+                <input v-model="formDescription" type="text" placeholder="Description" required />
+                <input v-model="formPercentage" type="number" min="0" max="100" placeholder="%" required />
+                <select v-model="formType" required>
+                  <option v-for="stack in stacks" :key="stack" :value="stack">{{ stack }}</option>
+                </select>
+                <button type="submit" class="btn-save">Add Skill</button>
+              </form>
             </td>
           </tr>
         </tbody>
       </table>
     </div>
 
-    <!-- Add/Edit Form -->
-    <div class="skill-form">
-      <h2>{{ formId ? 'Edit Skill' : 'Add Skill' }}</h2>
-      <form @submit.prevent="saveSkill" class="form-grid">
-        <label class="full-width">Name:
-          <input v-model="formName" type="text" />
-        </label>
-        <label>Description:
-          <input v-model="formDescription" type="text" />
-        </label>
-        <label>Percentage:
-          <input v-model="formPercentage" type="number" min="0" max="100" />
-        </label>
-        <label>Stack:
-          <select v-model="formType">
-            <option v-for="stack in stacks" :key="stack" :value="stack">{{ stack }}</option>
-          </select>
-        </label>
-        <div class="full-width">
-          <button type="submit" class="btn-save">Save</button>
-        </div>
-      </form>
-      <p v-if="message" class="status-message">{{ message }}</p>
-    </div>
+    <p v-if="message" class="status-message">{{ message }}</p>
   </section>
 </template>
 
@@ -177,27 +162,28 @@ export default {
 .skills-root {
   display: flex;
   flex-direction: column;
-  height: 100vh; /* one full screen */
+  height: 100vh;
   width: 100%;
   background-color: #0a0b0d;
   color: #fff;
-  padding: 20px 30px;
+  padding: 12px 20px; /* tighter padding */
   box-sizing: border-box;
 }
 
 .title {
-  font-size: 32px;
+  font-size: 28px;
   font-weight: 500;
   border-left: 4px solid #ff4d00;
-  padding-left: 12px;
-  margin-bottom: 16px;
+  padding-left: 10px;
+  margin-top: 4px;   /* minimal space from top */
+  margin-bottom: 8px; /* tighter spacing below */
 }
 
 /* Nav bar */
 .stack-nav {
   display: flex;
   gap: 12px;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
   width: 100%;
 }
 .nav-btn {
@@ -205,10 +191,10 @@ export default {
   background: #222;
   color: #fff;
   border: 1px solid #444;
-  padding: 8px;
+  padding: 6px;
   border-radius: 4px;
   cursor: pointer;
-  font-size: 0.9rem;
+  font-size: 0.8rem; /* smaller text */
 }
 .nav-btn.active {
   background: #ff4d00;
@@ -219,7 +205,7 @@ export default {
 .skills-table-wrapper {
   flex: 1;
   overflow-y: auto;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
 }
 .skills-table {
   width: 100%;
@@ -227,79 +213,73 @@ export default {
 }
 .skills-table th, .skills-table td {
   border: 1px solid #333;
-  padding: 8px;
-  font-size: 0.9rem;
+  padding: 6px;
+  font-size: 0.75rem; /* smaller text */
 }
 .skills-table th {
   background: #111;
   text-align: left;
 }
 
-/* Buttons */
-.edit-btn, .delete-btn {
-  padding: 6px 12px;
-  font-size: 0.8rem;
-  border-radius: 4px;
-  cursor: pointer;
-  font-weight: 600;
-}
-.edit-btn {
-  background: #ff8c3c;
-  color: #fff;
-  border: none;
-}
-.edit-btn:hover { background: #e67320; }
+/* Delete button */
 .delete-btn {
   background: transparent;
   color: #ff4d00;
   border: 1px solid #ff4d00;
+  padding: 4px 10px;
+  font-size: 0.7rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 600;
 }
 .delete-btn:hover { background: rgba(255,77,0,0.1); }
 
-/* Form */
-.skill-form {
-  flex-shrink: 0;
-  max-height: 220px;
-  overflow-y: auto;
-  background: rgba(255,255,255,0.05);
-  padding: 16px;
-  border-radius: 8px;
+/* Add new row */
+.add-row td {
+  background: #000000;
+  padding: 6px;
 }
-.form-grid {
+.add-form {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+  align-items: center;
 }
-.form-grid label {
-  display: flex;
-  flex-direction: column;
-  color: #fff;
-}
-.form-grid .full-width {
-  grid-column: span 2;
-}
-.skill-form input, .skill-form select {
-  padding: 8px;
-  border-radius: 6px;
+.add-form input,
+.add-form select {
+  padding: 5px;
+  font-size: 0.7rem;
+  border-radius: 3px;
   border: 1px solid #ff4d00;
-  background: #0a0b0d;
-  color: #fff;
-  margin-top: 4px;
+  background: #fff;
+  color: #000;
 }
-
 .btn-save {
   background: #ff4d00;
   color: #fff;
   border: none;
-  padding: 8px 14px;
-  border-radius: 6px;
+  padding: 5px 10px;
+  font-size: 0.7rem;
+  border-radius: 3px;
   cursor: pointer;
+  font-weight: 600;
 }
-.btn-save:hover { background: #e63c00; }
+.btn-save:hover {
+  background: #e63c00;
+}
 
+/* Status message */
 .status-message {
-  margin-top: 8px;
-  font-size: 0.9rem;
+  margin-top: 6px;
+  font-size: 0.75rem;
   color: #ff8c3c;
+}
+
+/* Loading */
+.loading {
+  text-align: center;
+  font-size: 0.8rem;
+  color: #ccc;
+  margin-top: 12px;
 }
 </style>
